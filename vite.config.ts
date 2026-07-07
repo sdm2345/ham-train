@@ -11,12 +11,14 @@ const nojekyll = (): import('vite').Plugin => ({
   },
 })
 
+const isCF = process.env.BUILD_TARGET === 'cf'
+
 export default defineConfig({
-  base: '/ham-train/',
+  base: isCF ? '/' : '/ham-train/',
   build: {
-    outDir: 'docs',
+    outDir: isCF ? 'dist' : 'docs',
   },
-  plugins: [react(), tailwindcss(), nojekyll()],
+  plugins: [react(), tailwindcss(), ...(isCF ? [] : [nojekyll()])],
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
