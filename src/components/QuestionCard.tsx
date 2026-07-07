@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { Question } from '@/types/question'
 import { CheckCircle, XCircle } from 'lucide-react'
-import { TipPanel } from '@/components/TipPanel'
 
 interface Props {
   question: Question
@@ -11,30 +10,18 @@ interface Props {
   showAnswer?: boolean
   index?: number
   total?: number
-  tip?: string | null
 }
 
-export function QuestionCard({ question, selected, onSelect, submitted, showAnswer, index, total, tip }: Props) {
+export function QuestionCard({ question, selected, onSelect, submitted, showAnswer, index, total }: Props) {
   const isCorrect = (key: string) => question.answer_keys.includes(key)
   const isSelected = (key: string) => selected.includes(key)
 
   const handleClick = (key: string) => {
     if (submitted) return
-    if (question.type === 'single') {
-      onSelect(key)
-    } else {
-      if (isSelected(key)) {
-        onSelect(key) // toggle off — parent handles set logic
-      } else {
-        onSelect(key)
-      }
-    }
+    onSelect(key)
   }
 
   const resultCorrect = submitted && question.answer_keys.every((k) => selected.includes(k)) && selected.every((k) => isCorrect(k))
-
-  const showTip = (submitted || showAnswer) && tip
-  const twoCol = showTip
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,10 +30,6 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
           第 {index + 1} / {total} 题 · {question.type === 'multiple' ? '多选' : '单选'}
         </div>
       )}
-
-      <div className={cn(twoCol && 'md:grid md:grid-cols-2 md:gap-6 md:items-start')}>
-        {/* Left column: question + options + wrong-answer hint */}
-        <div className="flex flex-col gap-4">
 
       <div className="rounded-lg border bg-card p-4 shadow-sm">
         <p className="text-base font-medium leading-relaxed">{question.question}</p>
@@ -85,7 +68,7 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
                 variant === 'correct' && 'border-green-500 bg-green-500 text-white',
                 variant === 'wrong' && 'border-red-500 bg-red-500 text-white',
                 variant === 'missed' && 'border-green-400 bg-transparent text-green-600',
-                (variant === 'default') && 'border-muted-foreground/40',
+                variant === 'default' && 'border-muted-foreground/40',
               )}>
                 {opt.key}
               </span>
@@ -105,16 +88,6 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
           </span>
         </div>
       )}
-
-        </div>{/* end left column */}
-
-        {/* Right column: tip (wide screen) / below (mobile) */}
-        {showTip && (
-          <div className="mt-4 md:mt-0">
-            <TipPanel tip={tip!} />
-          </div>
-        )}
-      </div>{/* end grid wrapper */}
     </div>
   )
 }

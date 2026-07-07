@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookMarked, RotateCcw, ChevronLeft } from 'lucide-react'
 import { QuestionCard } from '@/components/QuestionCard'
+import { TipPanel } from '@/components/TipPanel'
 import { db } from '@/db'
 import { upsertSRSCard, isDue } from '@/lib/srs'
 import { getTip } from '@/lib/tips'
@@ -212,9 +213,13 @@ export function Review() {
   }
 
   const card = queue[queueIndex]
+  const tip = currentQuestion ? getTip(currentQuestion.id) : null
+  const showTip = submitted && !!tip
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-4 space-y-4">
+    <div className="mx-auto px-4 py-4 space-y-4 transition-all duration-300"
+      style={{ maxWidth: showTip ? '72rem' : '42rem' }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <button
@@ -243,35 +248,46 @@ export function Review() {
         </span>
       </div>
 
-      {currentQuestion && (
-        <QuestionCard
-          question={currentQuestion}
-          selected={selected}
-          onSelect={handleSelect}
-          submitted={submitted}
-          index={queueIndex}
-          total={queue.length}
-          tip={getTip(currentQuestion.id)}
-        />
-      )}
+      {/* Main content: question left, tip right on wide screens */}
+      <div className={showTip ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6 lg:items-start' : undefined}>
+        <div className="flex flex-col gap-4 min-w-0">
+          {currentQuestion && (
+            <QuestionCard
+              question={currentQuestion}
+              selected={selected}
+              onSelect={handleSelect}
+              submitted={submitted}
+              index={queueIndex}
+              total={queue.length}
+            />
+          )}
 
-      {/* Action button */}
-      <div className="flex gap-3">
-        {!submitted ? (
-          <button
-            onClick={handleSubmit}
-            disabled={selected.length === 0}
-            className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground disabled:opacity-40 hover:bg-primary/90"
-          >
-            提交答案
-          </button>
-        ) : (
-          <button
-            onClick={handleNext}
-            className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            下一题
-          </button>
+          {/* Action button */}
+          <div className="flex gap-3">
+            {!submitted ? (
+              <button
+                onClick={handleSubmit}
+                disabled={selected.length === 0}
+                className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground disabled:opacity-40 hover:bg-primary/90"
+              >
+                提交答案
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                下一题
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tip panel: right column on lg, below on mobile */}
+        {showTip && (
+          <div className="mt-4 lg:mt-0 lg:sticky lg:top-4">
+            <TipPanel tip={tip!} />
+          </div>
         )}
       </div>
     </div>

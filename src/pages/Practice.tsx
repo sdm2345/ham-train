@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { QuestionCard } from '@/components/QuestionCard'
+import { TipPanel } from '@/components/TipPanel'
 import { db } from '@/db'
 import { shuffle } from '@/lib/utils'
 import { getTip } from '@/lib/tips'
@@ -168,8 +169,13 @@ export function Practice() {
     )
   }
 
+  const tip = getTip(current.id)
+  const showTip = submitted && !!tip
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-4 space-y-4">
+    <div className="mx-auto px-4 py-4 space-y-4 transition-all duration-300"
+      style={{ maxWidth: showTip ? '72rem' : '42rem' }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 hover:text-foreground">
@@ -192,41 +198,52 @@ export function Practice() {
         </label>
       )}
 
-      <QuestionCard
-        question={current}
-        selected={selected}
-        onSelect={handleSelect}
-        submitted={submitted}
-        index={index}
-        total={questions.length}
-        tip={getTip(current.id)}
-      />
+      {/* Main content: question left, tip right on wide screens */}
+      <div className={showTip ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6 lg:items-start' : undefined}>
+        <div className="flex flex-col gap-4 min-w-0">
+          <QuestionCard
+            question={current}
+            selected={selected}
+            onSelect={handleSelect}
+            submitted={submitted}
+            index={index}
+            total={questions.length}
+          />
 
-      {/* Action buttons */}
-      <div className="flex gap-3">
-        <button
-          onClick={handlePrev}
-          disabled={index === 0}
-          className="flex-1 rounded-lg border py-3 text-sm disabled:opacity-40 hover:bg-muted"
-        >
-          <ChevronLeft className="inline h-4 w-4" /> 上一题
-        </button>
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={handlePrev}
+              disabled={index === 0}
+              className="flex-1 rounded-lg border py-3 text-sm disabled:opacity-40 hover:bg-muted"
+            >
+              <ChevronLeft className="inline h-4 w-4" /> 上一题
+            </button>
 
-        {!submitted ? (
-          <button
-            onClick={handleSubmit}
-            disabled={selected.length === 0}
-            className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground disabled:opacity-40 hover:bg-primary/90"
-          >
-            提交答案
-          </button>
-        ) : (
-          <button
-            onClick={handleNext}
-            className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            下一题 <ChevronRight className="inline h-4 w-4" />
-          </button>
+            {!submitted ? (
+              <button
+                onClick={handleSubmit}
+                disabled={selected.length === 0}
+                className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground disabled:opacity-40 hover:bg-primary/90"
+              >
+                提交答案
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                下一题 <ChevronRight className="inline h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tip panel: right column on lg, below on mobile */}
+        {showTip && (
+          <div className="mt-4 lg:mt-0 lg:sticky lg:top-4">
+            <TipPanel tip={tip!} />
+          </div>
         )}
       </div>
     </div>
