@@ -11,7 +11,7 @@
 
 ## 在线使用
 
-[https://pages.github.tools.sap/I538105/ham-train/](https://pages.github.tools.sap/I538105/ham-train/)
+[https://sdm2345.github.io/ham-train/](https://sdm2345.github.io/ham-train/)
 
 ## 本地运行
 

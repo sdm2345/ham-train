@@ -10,8 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **本地开发**：`pnpm dev` → `http://localhost:5174/ham-train/`
 - **部署**：`pnpm deploy` → 推送 dist 到 gh-pages 分支
-- **线上地址**：`https://pages.github.tools.sap/I538105/ham-train/`
-- **GitHub**：`https://github.tools.sap/I538105/ham-train`
+- **线上地址**：`https://sdm2345.github.io/ham-train/`
+- **GitHub**：`https://github.com/sdm2345/ham-train`
 
 ## 技术栈
 
@@ -84,7 +84,7 @@ records:    ++id, questionId, timestamp, isCorrect, [questionId+isCorrect]
 - **Tailwind v4 主题**：颜色变量必须在 `@theme inline {}` 中声明，仅用 `@layer base` 不会生成 `bg-card` 等工具类
 - **CSV 行尾**：`questions_tagged.csv` 使用 CRLF，merge 脚本必须对 tag/category 字段 `.trim()` 去除 `\r`
 - **Vite base 路径**：`import.meta.env.BASE_URL` 用于 fetch seed 数据，所有静态资源路径需加此前缀
-- **github.tools.sap Actions**：企业级禁用，用 `pnpm deploy` 手动部署替代
+- **github.com Actions**：已禁用，用 `pnpm deploy` 本地构建后手动推送
 
 ## 常用命令
 
