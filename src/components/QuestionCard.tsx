@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import type { Question } from '@/types/question'
 import { CheckCircle, XCircle } from 'lucide-react'
+import { TipPanel } from '@/components/TipPanel'
 
 interface Props {
   question: Question
@@ -10,9 +11,10 @@ interface Props {
   showAnswer?: boolean
   index?: number
   total?: number
+  tip?: string | null
 }
 
-export function QuestionCard({ question, selected, onSelect, submitted, showAnswer, index, total }: Props) {
+export function QuestionCard({ question, selected, onSelect, submitted, showAnswer, index, total, tip }: Props) {
   const isCorrect = (key: string) => question.answer_keys.includes(key)
   const isSelected = (key: string) => selected.includes(key)
 
@@ -95,6 +97,10 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
             {question.answer_keys.join('、')}
           </span>
         </div>
+      )}
+
+      {(submitted || showAnswer) && tip && (
+        <TipPanel tip={tip} />
       )}
     </div>
   )

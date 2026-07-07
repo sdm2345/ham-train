@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { QuestionCard } from '@/components/QuestionCard'
 import { db } from '@/db'
 import { shuffle } from '@/lib/utils'
+import { getTip } from '@/lib/tips'
 import type { Question } from '@/types/question'
 import type { StudyRecord } from '@/types/study'
 import { upsertSRSCard } from '@/lib/srs'
@@ -137,6 +138,7 @@ export function Practice() {
         submitted={submitted}
         index={index}
         total={questions.length}
+        tip={getTip(current.id)}
       />
 
       {/* Action buttons */}

@@ -4,6 +4,7 @@ import { BookMarked, RotateCcw, ChevronLeft } from 'lucide-react'
 import { QuestionCard } from '@/components/QuestionCard'
 import { db } from '@/db'
 import { upsertSRSCard, isDue } from '@/lib/srs'
+import { getTip } from '@/lib/tips'
 import type { Question } from '@/types/question'
 import type { SRSCard } from '@/types/srs'
 import { BOX_LABELS } from '@/types/srs'
@@ -250,6 +251,7 @@ export function Review() {
           submitted={submitted}
           index={queueIndex}
           total={queue.length}
+          tip={getTip(currentQuestion.id)}
         />
       )}
 
