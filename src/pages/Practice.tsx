@@ -15,12 +15,14 @@ export function Practice() {
   const category = params.get('category') ?? undefined
   const doShuffle = params.get('shuffle') === '1'
   const singleId = params.get('id') ?? undefined
+  const untriedOnly = params.get('untried') === '1'
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<string[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [startTime, setStartTime] = useState(Date.now())
+  const [allPracticed, setAllPracticed] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -33,6 +35,20 @@ export function Practice() {
       } else {
         q = await db.questions.toArray()
       }
+
+      if (untriedOnly && !singleId) {
+        const practicedIds = new Set(
+          (await db.records.orderBy('questionId').uniqueKeys()) as string[]
+        )
+        q = q.filter((item) => !practicedIds.has(item.id))
+        if (q.length === 0) {
+          setAllPracticed(true)
+          setQuestions([])
+          return
+        }
+      }
+
+      setAllPracticed(false)
       setQuestions(doShuffle ? shuffle(q) : q)
       setIndex(0)
       setSelected([])
@@ -40,7 +56,7 @@ export function Practice() {
       setStartTime(Date.now())
     }
     load()
-  }, [category, doShuffle, singleId])
+  }, [category, doShuffle, singleId, untriedOnly])
 
   const current = questions[index]
 
@@ -89,6 +105,38 @@ export function Practice() {
     setStartTime(Date.now())
   }
 
+  const handleUntriedToggle = (checked: boolean) => {
+    const next = new URLSearchParams(params)
+    if (checked) next.set('untried', '1')
+    else next.delete('untried')
+    navigate(`/practice?${next.toString()}`, { replace: true })
+  }
+
+  if (allPracticed) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-12 text-center space-y-4">
+        <p className="text-2xl font-bold">🎉 全部练习过了！</p>
+        <p className="text-muted-foreground">
+          {category ? decodeURIComponent(category).split('.').pop() : '全部题目'}已全部做过，取消筛选继续练习。
+        </p>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={() => handleUntriedToggle(false)}
+            className="rounded-lg border px-4 py-2 text-sm hover:bg-muted"
+          >
+            显示全部题目
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+          >
+            返回首页
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (questions.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-8 text-muted-foreground">
@@ -130,6 +178,19 @@ export function Practice() {
         </button>
         <span>{index + 1} / {questions.length}</span>
       </div>
+
+      {/* Untried filter */}
+      {!singleId && (
+        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none w-fit">
+          <input
+            type="checkbox"
+            checked={untriedOnly}
+            onChange={(e) => handleUntriedToggle(e.target.checked)}
+            className="h-4 w-4 rounded border-muted-foreground/40 accent-primary"
+          />
+          只做未练习
+        </label>
+      )}
 
       <QuestionCard
         question={current}
