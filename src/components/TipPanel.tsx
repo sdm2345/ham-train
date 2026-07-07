@@ -1,5 +1,8 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import { Lightbulb } from 'lucide-react'
 
 interface Props {
@@ -19,8 +22,14 @@ export function TipPanel({ tip }: Props) {
         [&_td]:border [&_td]:border-blue-200 [&_td]:dark:border-blue-700 [&_td]:px-2 [&_td]:py-1
         [&_blockquote]:border-l-4 [&_blockquote]:border-blue-400 [&_blockquote]:pl-3 [&_blockquote]:text-sm [&_blockquote]:italic [&_blockquote]:text-blue-800 [&_blockquote]:dark:text-blue-300 [&_blockquote]:my-2
         [&_p]:my-1 [&_p]:text-sm [&_strong]:font-bold
+        [&_.katex-display]:overflow-x-auto [&_.katex-display]:py-1
       ">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{tip}</ReactMarkdown>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+        >
+          {tip}
+        </ReactMarkdown>
       </div>
     </div>
   )
