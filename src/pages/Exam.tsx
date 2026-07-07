@@ -68,7 +68,7 @@ export function Exam() {
 
   if (!exam) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 text-center space-y-6">
+      <div className="mx-auto max-w-2xl px-4 py-12 text-center space-y-6">
         <h1 className="text-2xl font-bold">模拟考试</h1>
         <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground space-y-2 text-left">
           <p>• 共 {EXAM_TOTAL} 题（32 单选 + 8 多选）</p>
@@ -90,7 +90,7 @@ export function Exam() {
     const pct = Math.round((score / exam.questions.length) * 100)
     const pass = score >= 32
     return (
-      <div className="mx-auto max-w-lg px-4 py-8 space-y-6">
+      <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
         <div className={`rounded-xl border p-6 text-center ${pass ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : 'border-red-500 bg-red-50 dark:bg-red-950/30'}`}>
           <div className="text-4xl font-bold mb-2">{pct} 分</div>
           <div className={`text-lg font-semibold ${pass ? 'text-green-600' : 'text-red-600'}`}>
@@ -139,7 +139,7 @@ export function Exam() {
   const flagged = exam.flags[current.id]
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4 space-y-4">
+    <div className="mx-auto max-w-2xl px-4 py-4 space-y-4">
       {/* Timer + progress */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium">

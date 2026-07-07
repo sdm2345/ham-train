@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "pnpm build && node scripts/deploy-ghpages.mjs"
+    "deploy": "pnpm build && git add docs && git commit -m 'chore: build' && git push"
   },
   "dependencies": {
     "clsx": "^2.1.1",

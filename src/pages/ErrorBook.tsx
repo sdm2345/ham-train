@@ -61,7 +61,7 @@ export function ErrorBook() {
   ]
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4 space-y-4">
+    <div className="mx-auto max-w-2xl px-4 py-4 space-y-4">
       <h1 className="text-lg font-bold">错题本</h1>
 
       {/* Tab bar */}

@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
+import { isDue } from '@/lib/srs'
 
 export function useStudyStats() {
   const totalByCategory = useLiveQuery(async () => {
@@ -24,5 +25,10 @@ export function useStudyStats() {
     return db.records.where('timestamp').above(midnight.getTime()).count()
   }, [])
 
-  return { totalByCategory, correctByCategory, todayCount }
+  const dueCount = useLiveQuery(async () => {
+    const cards = await db.srs_cards.toArray()
+    return cards.filter(isDue).length
+  }, [])
+
+  return { totalByCategory, correctByCategory, todayCount, dueCount }
 }

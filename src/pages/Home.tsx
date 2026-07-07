@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, ClipboardList, Shuffle } from 'lucide-react'
+import { BookOpen, ClipboardList, Shuffle, BookMarked } from 'lucide-react'
 import { CategoryCard } from '@/components/CategoryCard'
 import { useStudyStats } from '@/hooks/useStudyStats'
 import { CATEGORIES } from '@/types/question'
 
 export function Home() {
   const navigate = useNavigate()
-  const { totalByCategory, correctByCategory, todayCount } = useStudyStats()
+  const { totalByCategory, correctByCategory, todayCount, dueCount } = useStudyStats()
 
   const totalAll = totalByCategory
     ? Object.values(totalByCategory).reduce((s, n) => s + n, 0)
@@ -16,7 +16,7 @@ export function Home() {
     : 0
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
       {/* Stats header */}
       <div className="rounded-xl border bg-card p-4 shadow-sm">
         <h1 className="text-lg font-bold mb-3">业余无线电 A 证刷题</h1>
@@ -39,6 +39,25 @@ export function Home() {
           </div>
         )}
       </div>
+
+      {/* SRS due banner */}
+      {(dueCount ?? 0) > 0 && (
+        <button
+          onClick={() => navigate('/review')}
+          className="flex w-full items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm hover:bg-primary/10 transition-all active:scale-95"
+        >
+          <div className="flex items-center gap-3">
+            <BookMarked className="h-5 w-5 text-primary" />
+            <div className="text-left">
+              <p className="text-sm font-semibold text-primary">间隔复习提醒</p>
+              <p className="text-xs text-muted-foreground">
+                有 <span className="font-bold text-primary">{dueCount}</span> 题到期，建议现在复习
+              </p>
+            </div>
+          </div>
+          <span className="text-xs text-primary font-medium">开始 →</span>
+        </button>
+      )}
 
       {/* Quick actions */}
       <div className="grid grid-cols-3 gap-3">

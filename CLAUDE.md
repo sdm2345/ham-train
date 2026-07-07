@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # ham-train
 
 业余无线电 A 证刷题训练应用。
@@ -59,6 +63,20 @@ records:    ++id, questionId, timestamp, isCorrect, [questionId+isCorrect]
 | `5.接收技术` | 接收技术 | 69 |
 | `6.电路基础` | 电路基础 | 75 |
 | `7.安全` | 安全 | 23 |
+
+## 架构要点
+
+**状态管理分层**：
+- **Zustand** (`store/session.ts`) 仅用于考试模式——持有题目列表、答案 map、标记 flags、计时器边界。考试结束（`finish()` 或超时）后由 `Exam.tsx` 一次性 `bulkAdd` 写入 Dexie。
+- **Practice 模式**全用本地 React state，每题提交后立即写一条 `StudyRecord`。
+
+**考试出题规则**：32 道随机单选 + 8 道随机多选，合并后再次 shuffle，固定 40 题 40 分钟，答对 32 题（80 分）及格。
+
+**路由参数**：Practice 页通过 `?category=X&shuffle=1` URL 参数过滤题目，无参数时加载全部题目。
+
+**`seedIfEmpty` 幂等性**：模块级 promise 变量保证同一会话只 fetch 一次，`App.tsx` useEffect 触发。若 IndexedDB 已有数据则立即返回。
+
+**`merge-tags.mjs` 依赖**：需要兄弟目录 `../ham-exam-web/public/questions/A.json` 和 `../ham-exam-web/A/questions_tagged.csv` 才能运行，这两个文件不在本仓库内。
 
 ## 已知注意事项
 

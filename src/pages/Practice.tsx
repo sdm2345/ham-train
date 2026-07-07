@@ -6,12 +6,14 @@ import { db } from '@/db'
 import { shuffle } from '@/lib/utils'
 import type { Question } from '@/types/question'
 import type { StudyRecord } from '@/types/study'
+import { upsertSRSCard } from '@/lib/srs'
 
 export function Practice() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const category = params.get('category') ?? undefined
   const doShuffle = params.get('shuffle') === '1'
+  const singleId = params.get('id') ?? undefined
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [index, setIndex] = useState(0)
@@ -21,9 +23,15 @@ export function Practice() {
 
   useEffect(() => {
     async function load() {
-      const q = category
-        ? await db.questions.where('category').equals(category).toArray()
-        : await db.questions.toArray()
+      let q: Question[]
+      if (singleId) {
+        const found = await db.questions.get(singleId)
+        q = found ? [found] : []
+      } else if (category) {
+        q = await db.questions.where('category').equals(category).toArray()
+      } else {
+        q = await db.questions.toArray()
+      }
       setQuestions(doShuffle ? shuffle(q) : q)
       setIndex(0)
       setSelected([])
@@ -31,7 +39,7 @@ export function Practice() {
       setStartTime(Date.now())
     }
     load()
-  }, [category, doShuffle])
+  }, [category, doShuffle, singleId])
 
   const current = questions[index]
 
@@ -63,6 +71,7 @@ export function Practice() {
       timeSpent: Date.now() - startTime,
     }
     await db.records.add(record)
+    await upsertSRSCard(current.id, correct)
   }, [current, selected, startTime])
 
   const handleNext = () => {
@@ -89,7 +98,7 @@ export function Practice() {
 
   if (index >= questions.length) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 text-center space-y-4">
+      <div className="mx-auto max-w-2xl px-4 py-12 text-center space-y-4">
         <p className="text-2xl font-bold">本轮练习完成！</p>
         <p className="text-muted-foreground">共 {questions.length} 题</p>
         <div className="flex gap-3 justify-center">
@@ -111,12 +120,12 @@ export function Practice() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-4 space-y-4">
+    <div className="mx-auto max-w-2xl px-4 py-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 hover:text-foreground">
           <ChevronLeft className="h-4 w-4" />
-          {category ? decodeURIComponent(category).split('.').pop() : '全部题目'}
+          {category ? decodeURIComponent(category).split('.').pop() : singleId ? '单题练习' : '全部题目'}
         </button>
         <span>{index + 1} / {questions.length}</span>
       </div>

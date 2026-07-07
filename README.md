@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# ham-train 🎙️
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+业余无线电操作证（A 类）备考刷题应用，帮助你高效通过工业和信息化部无线电管理局的业余无线电台操作证考试。
 
-Currently, two official plugins are available:
+## 功能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **分类练习**：按法规管理、操作实践、发射技术、天线技术等 9 大类逐题练习，提交后即时显示正误与解析
+- **模拟考试**：严格按照真实考试规格（40 题 / 40 分钟 / 80 分及格），自动出题、倒计时、标记疑难题、提交后查看错题
+- **错题本**：汇总所有答错记录，随时针对薄弱环节复习
+- **学习统计**：首页实时显示各类别掌握进度与今日答题数
 
-## React Compiler
+## 在线使用
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+[https://pages.github.tools.sap/I538105/ham-train/](https://pages.github.tools.sap/I538105/ham-train/)
 
-## Expanding the ESLint configuration
+## 本地运行
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+浏览器访问 `http://localhost:5173/ham-train/`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 题库说明
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+题目来源为工信部业余无线电台操作技术能力验证题库（A 类），共 683 题，涵盖以下 9 个类别：
+
+| 类别 | 题数 |
+|------|------|
+| 法规管理 | 149 |
+| 操作实践 | 127 |
+| 频率管理 | 99 |
+| 电路基础 | 75 |
+| 接收技术 | 69 |
+| 天线技术 | 68 |
+| 发射技术 | 55 |
+| 安全 | 23 |
+| 无线电传播 | 18 |
+
+## 考试规格
+
+业余无线电台操作技术能力验证（A 类）考试要求：
+
+- 题型：单项选择题 + 多项选择题
+- 本应用模拟：32 道单选 + 8 道多选，共 40 题
+- 限时：40 分钟
+- 满分：100 分，80 分及格
