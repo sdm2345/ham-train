@@ -33,6 +33,9 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
 
   const resultCorrect = submitted && question.answer_keys.every((k) => selected.includes(k)) && selected.every((k) => isCorrect(k))
 
+  const showTip = (submitted || showAnswer) && tip
+  const twoCol = showTip
+
   return (
     <div className="flex flex-col gap-4">
       {index !== undefined && total !== undefined && (
@@ -40,6 +43,10 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
           第 {index + 1} / {total} 题 · {question.type === 'multiple' ? '多选' : '单选'}
         </div>
       )}
+
+      <div className={cn(twoCol && 'md:grid md:grid-cols-2 md:gap-6 md:items-start')}>
+        {/* Left column: question + options + wrong-answer hint */}
+        <div className="flex flex-col gap-4">
 
       <div className="rounded-lg border bg-card p-4 shadow-sm">
         <p className="text-base font-medium leading-relaxed">{question.question}</p>
@@ -99,9 +106,15 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
         </div>
       )}
 
-      {(submitted || showAnswer) && tip && (
-        <TipPanel tip={tip} />
-      )}
+        </div>{/* end left column */}
+
+        {/* Right column: tip (wide screen) / below (mobile) */}
+        {showTip && (
+          <div className="mt-4 md:mt-0">
+            <TipPanel tip={tip!} />
+          </div>
+        )}
+      </div>{/* end grid wrapper */}
     </div>
   )
 }
