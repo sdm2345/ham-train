@@ -217,9 +217,7 @@ export function Review() {
   const showTip = submitted && !!tip
 
   return (
-    <div className="mx-auto px-4 py-4 space-y-4 transition-all duration-300"
-      style={{ maxWidth: showTip ? '72rem' : '42rem' }}
-    >
+    <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <button
@@ -248,9 +246,9 @@ export function Review() {
         </span>
       </div>
 
-      {/* Main content: question left, tip right on wide screens */}
-      <div className={showTip ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6 lg:items-start' : undefined}>
-        <div className="flex flex-col gap-4 min-w-0">
+      {/* Main content: question left, tip slides in from right on lg */}
+      <div className="flex gap-6 items-start">
+        <div className="flex flex-col gap-4 min-w-0 flex-1">
           {currentQuestion && (
             <QuestionCard
               question={currentQuestion}
@@ -283,13 +281,25 @@ export function Review() {
           </div>
         </div>
 
-        {/* Tip panel: right column on lg, below on mobile */}
-        {showTip && (
-          <div className="mt-4 lg:mt-0 lg:sticky lg:top-4">
-            <TipPanel tip={tip!} />
-          </div>
-        )}
+        {/* Tip panel: slides in from right, hidden on mobile */}
+        <div
+          className="hidden lg:block overflow-hidden shrink-0 sticky top-4"
+          style={{
+            width: showTip ? '380px' : '0',
+            opacity: showTip ? 1 : 0,
+            transition: 'width 0.3s ease, opacity 0.3s ease',
+          }}
+        >
+          {tip && <TipPanel tip={tip} />}
+        </div>
       </div>
+
+      {/* Tip panel below on mobile */}
+      {showTip && tip && (
+        <div className="lg:hidden">
+          <TipPanel tip={tip} />
+        </div>
+      )}
     </div>
   )
 }
