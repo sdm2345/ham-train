@@ -26,8 +26,14 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
   return (
     <div className="flex flex-col gap-4">
       {index !== undefined && total !== undefined && (
-        <div className="text-sm text-muted-foreground">
-          第 {index + 1} / {total} 题 · {question.type === 'multiple' ? '多选' : '单选'}
+        <div className="text-sm text-muted-foreground flex flex-wrap gap-x-2">
+          <span>第 {index + 1} / {total} 题</span>
+          <span>·</span>
+          <span>{question.type === 'multiple' ? '多选' : '单选'}</span>
+          <span>·</span>
+          <span className="font-mono">{question.id}</span>
+          <span>·</span>
+          <span>{question.category.split('.').pop()}</span>
         </div>
       )}
 
