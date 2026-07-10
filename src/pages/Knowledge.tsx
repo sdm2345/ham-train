@@ -37,11 +37,13 @@ const LAW_GROUPS = [
     title: '许可证 & 执照',
     hot: true,
     points: [
+      { text: 'A类操作证（操作技术能力验证证书）：长期有效，无固定有效期，无需审验', hot: true },
       { text: 'A类：仅限 430MHz以下频段，最大发射功率 25W（短波）/ 10W（VHF/UHF）', hot: true },
       { text: 'B/C类：可使用 430-440MHz，最大 10W', hot: true },
       { text: '操作证书由中国无线电运动协会（CRSA）颁发', hot: false },
-      { text: '无线电台执照由工业和信息化部（工信部）颁发', hot: true },
-      { text: '执照有效期：3年（定期审验）', hot: true },
+      { text: '无线电台执照由工信部颁发，有效期不超过5年', hot: true },
+      { text: '执照到期前30个工作日申请延续（更换执照，非年审）', hot: true },
+      { text: '新版2024年已取消定期审验，改为无委定期上门检查检测', hot: true },
     ],
   },
   {
@@ -52,6 +54,7 @@ const LAW_GROUPS = [
       { text: '《业余无线电台管理办法》= 工信部部门规章', hot: true },
       { text: '业余电台不得用于商业通信，不得传递无关内容', hot: false },
       { text: '设置业余中继台需单独申请执照', hot: true },
+      { text: '最新《业余无线电台管理办法》自2024年3月1日起施行（工信部令第67号）', hot: true },
     ],
   },
   {
