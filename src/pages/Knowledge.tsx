@@ -1,397 +1,25 @@
 import { useState } from 'react'
-import { Zap, Scale, Radio, ChevronRight, ChevronDown, Star, ArrowLeft } from 'lucide-react'
+import { Zap, Scale, Radio, ChevronRight, ArrowLeft, Star } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
-
-// ─── Spectrum data — sorted low→high frequency ────────────────────────────────
-const SPECTRUM = [
-  { abbr: 'VLF', full: 'Very Low Frequency',      cn: '甚低频', range: '3-30 kHz',     band: '万米波', amateur: '',                                hot: false },
-  { abbr: 'LF',  full: 'Low Frequency',            cn: '低频',   range: '30-300 kHz',   band: '千米波', amateur: '135.7-137.8 kHz ★',               hot: true  },
-  { abbr: 'MF',  full: 'Medium Frequency',         cn: '中频',   range: '300k-3 MHz',   band: '百米波', amateur: '1.8-2 MHz ★',                     hot: true  },
-  { abbr: 'HF',  full: 'High Frequency',           cn: '高频',   range: '3-30 MHz',     band: '十米波', amateur: '3.5/7/10/14/18/21/24/28 MHz',     hot: true  },
-  { abbr: 'VHF', full: 'Very High Frequency',      cn: '甚高频', range: '30-300 MHz',   band: '米波',   amateur: '50-54 / 144-148 MHz ★',           hot: true  },
-  { abbr: 'UHF', full: 'Ultra High Frequency',     cn: '特高频', range: '300M-3 GHz',   band: '分米波', amateur: '430-440 MHz ★★',                  hot: true  },
-  { abbr: 'SHF', full: 'Super High Frequency',     cn: '超高频', range: '3-30 GHz',     band: '厘米波', amateur: '2.3G / 5.65G / 10G',              hot: false },
-  { abbr: 'EHF', full: 'Extremely High Frequency', cn: '极高频', range: '30-300 GHz',   band: '毫米波', amateur: '24G / 47G / 241G',                hot: false },
-]
-
-// BANDS sorted by ascending frequency (freqHz = lower bound in Hz for sort key)
-const BANDS = [
-  { name: '160米',     freq: '1.8-2 MHz',           freqHz: 1.8e6,    power: 'A类25W',      note: '主要业务',              hot: false },
-  { name: '80米',      freq: '3.5-3.9 MHz',          freqHz: 3.5e6,    power: 'A类25W',      note: '主要业务',              hot: false },
-  { name: '40米★',    freq: '7.0-7.2 MHz',           freqHz: 7.0e6,    power: 'A类25W',      note: '主要业务(ITU三区)',      hot: true  },
-  { name: '30米',      freq: '10.1-10.15 MHz',        freqHz: 10.1e6,   power: 'A类25W',      note: '次要业务',              hot: false },
-  { name: '20米★★',   freq: '14.0-14.35 MHz',         freqHz: 14.0e6,   power: 'A类25W',      note: '专用/主要业务★',        hot: true  },
-  { name: '17米',      freq: '18.068-18.168 MHz',      freqHz: 18.068e6, power: 'A类25W',      note: '主要业务',              hot: false },
-  { name: '15米',      freq: '21.0-21.45 MHz',         freqHz: 21.0e6,   power: 'A类25W',      note: '专用',                  hot: false },
-  { name: '12米',      freq: '24.89-24.99 MHz',        freqHz: 24.89e6,  power: 'A类25W',      note: '主要业务',              hot: false },
-  { name: '10米',      freq: '28-29.7 MHz',            freqHz: 28e6,     power: 'A类25W',      note: '专用',                  hot: false },
-  { name: '6米★',     freq: '50-54 MHz',              freqHz: 50e6,     power: 'A类25W',      note: '主要业务',              hot: true  },
-  { name: '2米★★',    freq: '144-148 MHz',            freqHz: 144e6,    power: 'A/B/C类≤25W', note: '主要业务',              hot: true  },
-  { name: '70厘米★★', freq: '430-440 MHz',            freqHz: 430e6,    power: 'A/B/C类≤25W', note: '次要业务',              hot: true  },
-  { name: '23厘米',    freq: '1240-1300 MHz',          freqHz: 1240e6,   power: '≤25W',        note: '次要业务',              hot: false },
-  { name: '13厘米',    freq: '2300-2450 MHz',          freqHz: 2300e6,   power: '≤25W',        note: '次要业务',              hot: false },
-].sort((a, b) => a.freqHz - b.freqHz)
-
-const LAW_GROUPS = [
-  {
-    title: '许可证 & 执照',
-    hot: true,
-    points: [
-      { text: '操作技术能力验证证书由无线电管理机构颁发（非CRSA）★★', hot: true },
-      { text: 'A类操作证：长期有效，无固定有效期，无需审验', hot: true },
-      { text: 'A类：30-3000MHz（VHF+UHF），最大发射功率 ≤25W', hot: true },
-      { text: 'B类：30MHz以下 <15W，30MHz以上（含VHF/UHF/430MHz）≤25W', hot: true },
-      { text: 'C类：HF ≤1000W，VHF/UHF ≤25W', hot: true },
-      { text: '无线电台执照由工信部颁发，有效期不超过5年', hot: true },
-      { text: '执照到期前30个工作日申请延续（更换执照，非年审）', hot: true },
-      { text: '2024年已取消定期审验，改为无委定期上门检查检测', hot: false },
-    ],
-  },
-  {
-    title: '法规层级',
-    hot: true,
-    points: [
-      { text: '《无线电管理条例》= 国务院＋中央军委联合发布（行政法规）★★', hot: true },
-      { text: '《业余无线电台管理办法》= 工信部部门规章', hot: true },
-      { text: '业余电台不得用于商业通信，不得传递无关内容', hot: false },
-      { text: '设置业余中继台需单独申请执照', hot: true },
-      { text: '最新《业余无线电台管理办法》自2024年3月1日起施行（工信部令第67号）', hot: true },
-    ],
-  },
-  {
-    title: '频率使用原则',
-    hot: true,
-    points: [
-      { text: '主要业务 > 次要业务：次要业务不得干扰主要业务', hot: true },
-      { text: '划分 → 分配 → 指配（三级体系）★★', hot: true },
-      { text: '禁止发射无意义信号、音乐、广播节目', hot: false },
-      { text: 'IARU信标频率：禁止在±500Hz范围内发射', hot: true },
-    ],
-  },
-  {
-    title: '中继台规定',
-    hot: false,
-    points: [
-      { text: '144MHz中继收发频差：600kHz', hot: true },
-      { text: '430MHz中继收发频差：5MHz', hot: true },
-      { text: '中继台必须具备自动关机保护功能', hot: false },
-    ],
-  },
-  {
-    title: '边带规则',
-    hot: true,
-    points: [
-      { text: '10.1MHz以下 → LSB（下边带）', hot: true },
-      { text: '10.1MHz以上（含10.1）→ USB（上边带）', hot: true },
-      { text: 'VHF/UHF SSB → USB', hot: false },
-    ],
-  },
-]
-
-// ─── Spectrum bar ──────────────────────────────────────────────────────────────
-const COLORS = ['#6366f1','#8b5cf6','#a855f7','#ec4899','#f43f5e','#f97316','#84cc16','#14b8a6']
-
-function SpectrumBar() {
-  return (
-    <div className="mb-4">
-      <div className="text-xs text-muted-foreground mb-1.5">频谱概览（对数刻度，高亮=业余常用）</div>
-      <div className="flex rounded-xl overflow-hidden border h-9">
-        {SPECTRUM.map((s, i) => (
-          <div
-            key={s.abbr}
-            className={cn('flex-1 flex items-center justify-center text-[10px] font-bold text-white', s.hot && 'ring-2 ring-inset ring-white/40')}
-            style={{ backgroundColor: COLORS[i] }}
-            title={`${s.full} (${s.cn}) ${s.range}${s.amateur ? '\n' + s.amateur : ''}`}
-          >
-            {s.abbr}
-          </div>
-        ))}
-      </div>
-      <div className="flex mt-0.5">
-        {SPECTRUM.map((s) => (
-          <div key={s.abbr} className="flex-1 text-center text-[9px] text-muted-foreground truncate px-0.5">{s.band}</div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Frequency detail ─────────────────────────────────────────────────────────
-function FrequencyDetail() {
-  const [showBands, setShowBands] = useState(true)
-  const [showSpec, setShowSpec]   = useState(true)
-
-  return (
-    <div className="space-y-4">
-      <SpectrumBar />
-
-      {/* spectrum rows */}
-      <div className="rounded-xl border bg-card divide-y">
-        <button className="w-full flex items-center justify-between px-4 py-3" onClick={() => setShowSpec(v => !v)}>
-          <span className="flex items-center gap-1.5 text-sm font-semibold">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />各频段业余分配
-          </span>
-          {showSpec ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-        </button>
-        {showSpec && SPECTRUM.map((s) => (
-          <div key={s.abbr} className={cn('flex gap-2 items-start px-4 py-2.5 text-xs', s.hot && 'bg-amber-50 dark:bg-amber-950/20')}>
-            {/* abbr + full name */}
-            <div className="w-24 shrink-0">
-              <span className={cn('font-bold', s.hot ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>{s.abbr}</span>
-              <span className="ml-1 text-muted-foreground">{s.cn}</span>
-            </div>
-            {/* freq range */}
-            <span className="font-mono text-[10px] text-muted-foreground w-24 shrink-0">{s.range}</span>
-            {/* amateur freq */}
-            <span className={cn('flex-1', s.hot && 'font-medium')}>{s.amateur || <span className="opacity-30">—</span>}</span>
-            {s.hot && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400 mt-0.5" />}
-          </div>
-        ))}
-      </div>
-
-      {/* band table */}
-      <div className="rounded-xl border bg-card divide-y">
-        <button className="w-full flex items-center justify-between px-4 py-3" onClick={() => setShowBands(v => !v)}>
-          <span className="flex items-center gap-1.5 text-sm font-semibold">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />业余波段速查表
-            <span className="text-[10px] font-normal text-muted-foreground ml-1">↑ 频率升序</span>
-          </span>
-          {showBands ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-        </button>
-        {showBands && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-muted/50 text-muted-foreground">
-                  <th className="px-3 py-2 text-left font-medium">波段</th>
-                  <th className="px-2 py-2 text-left font-medium">频率</th>
-                  <th className="px-2 py-2 text-left font-medium">最大功率</th>
-                  <th className="px-2 py-2 text-left font-medium">地位</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {BANDS.map((b) => (
-                  <tr key={b.name} className={b.hot ? 'bg-amber-50 dark:bg-amber-950/20' : ''}>
-                    <td className={cn('px-3 py-2 font-semibold', b.hot && 'text-amber-700 dark:text-amber-300')}>{b.name}</td>
-                    <td className="px-2 py-2 font-mono text-[11px]">{b.freq}</td>
-                    <td className="px-2 py-2">{b.power}</td>
-                    <td className={cn('px-2 py-2', b.note.includes('次要') ? 'text-muted-foreground' : 'text-green-700 dark:text-green-400')}>{b.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4 text-xs space-y-1.5">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">🧠 记忆口诀</div>
-        <p><strong>ABC三类</strong>：A类限短波（25W），B/C类可用430MHz（10W）</p>
-        <p><strong>波段名</strong>：频率越低→波长越长（160米≈1.8MHz）</p>
-        <p><strong>业务地位</strong>：专用 &gt; 主要业务 &gt; 次要业务（20米波段 14-14.25专用 / 14.25-14.35主要）</p>
-        <p><strong>高频考点</strong>：135.7kHz / 1.8MHz / 50MHz / 144MHz / 430MHz ★★</p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Law detail ───────────────────────────────────────────────────────────────
-function LawDetail() {
-  const [open, setOpen] = useState<Record<number, boolean>>(
-    Object.fromEntries(LAW_GROUPS.map((g, i) => [i, g.hot]))
-  )
-  const toggle = (i: number) => setOpen(v => ({ ...v, [i]: !v[i] }))
-
-  return (
-    <div className="space-y-3">
-      {LAW_GROUPS.map((g, i) => (
-        <div key={i} className={cn('rounded-xl border bg-card divide-y', g.hot && 'border-amber-200 dark:border-amber-700')}>
-          <button className="w-full flex items-center justify-between px-4 py-3" onClick={() => toggle(i)}>
-            <span className="flex items-center gap-1.5 text-sm font-semibold">
-              {g.hot && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
-              {g.title}
-            </span>
-            {open[i] ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          </button>
-          {open[i] && (
-            <ul className="py-1 divide-y divide-border/40">
-              {g.points.map((p, j) => (
-                <li key={j} className={cn('flex gap-2 items-start px-4 py-2 text-xs', p.hot && 'bg-red-50 dark:bg-red-950/20')}>
-                  <span className={cn('mt-0.5 shrink-0 font-bold', p.hot ? 'text-red-500' : 'text-muted-foreground/30')}>
-                    {p.hot ? '★' : '·'}
-                  </span>
-                  <span className={p.hot ? 'font-medium' : ''}>{p.text}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ))}
-
-      <div className="rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4 text-xs space-y-1.5">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">🧠 记忆要点</div>
-        <p>★★ <strong>三级体系</strong>：划分→分配→指配</p>
-        <p>★★ <strong>条例=军民联合</strong>（国务院+中央军委），非法律非规章</p>
-        <p>★ <strong>边带口诀</strong>：10.1以下LSB，10.1以上USB</p>
-        <p>★ <strong>中继频差</strong>：144MHz=600kHz，430MHz=5MHz</p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Q code data ──────────────────────────────────────────────────────────────
-const Q_GROUPS = [
-  {
-    title: '高频必考（出题5次以上）',
-    hot: true,
-    codes: [
-      { code: 'QSL', meaning: '我确认抄收了你所发送的消息', note: '也指QSL卡片确认联络（19题）', hot: true },
-      { code: 'QSY', meaning: '我要改变发射频率至…千赫/兆赫', note: '协商改频（9题）', hot: true },
-      { code: 'QRT', meaning: '我要关闭收发信机了，再见', note: '结束通联/关机（6题）', hot: true },
-      { code: 'QRU', meaning: '我这里没有要发给你的消息', note: '结束前询问/告知无事（6题）', hot: true },
-      { code: 'QRQ', meaning: '请加快发报速度', note: '与QRS对比（5题）', hot: true },
-      { code: 'QRS', meaning: '请放慢发报速度', note: '与QRQ对比（5题）', hot: true },
-      { code: 'QRV', meaning: '我准备好收信了', note: '表示就绪（5题）', hot: true },
-      { code: 'QSD', meaning: '你的电台存在键控缺陷', note: 'CW发报手法问题（5题）', hot: true },
-      { code: 'QSP', meaning: '我可以将你的消息转信至某台', note: '中继/转信操作（5题）', hot: true },
-    ],
-  },
-  {
-    title: '功率 & 速度',
-    hot: true,
-    codes: [
-      { code: 'QRO', meaning: '我已增大发射功率', note: '疑问：要我加大功率吗？', hot: true },
-      { code: 'QRP', meaning: '我已降低发射功率', note: '低功率挑战 ≤5W，如 BH1ZZZ/QRP', hot: true },
-      { code: 'QRQ', meaning: '请加快发报速度', note: '', hot: false },
-      { code: 'QRS', meaning: '请放慢发报速度', note: 'Really Slow 辅助记忆', hot: false },
-    ],
-  },
-  {
-    title: '频率 & 联络状态',
-    hot: true,
-    codes: [
-      { code: 'QRZ', meaning: '呼叫我的是哪台？', note: '疑问常用（3题）', hot: true },
-      { code: 'QRL', meaning: '我正忙于联络（频率被使用）', note: '发呼前先问"QRL？"', hot: true },
-      { code: 'QRM', meaning: '我受到人为干扰', note: '人为干扰（man-made）', hot: true },
-      { code: 'QRN', meaning: '我受到天电干扰（自然噪声）', note: '天电/雷电/静电（nature）', hot: true },
-      { code: 'QSB', meaning: '你的信号正在衰落', note: '信号衰落（fading）', hot: true },
-      { code: 'QSX', meaning: '我正在…千赫守听', note: '守听另一频率', hot: false },
-      { code: 'QRB', meaning: '我与你台之间的距离约为…', note: '', hot: false },
-    ],
-  },
-  {
-    title: 'CW 操作',
-    hot: false,
-    codes: [
-      { code: 'QSK', meaning: '发报时我能在电码间隙听到对方', note: '全双工CW（break-in）', hot: true },
-      { code: 'QSD', meaning: '你的电台存在键控缺陷', note: '交流声/键击声/接触不良', hot: false },
-      { code: 'QSA', meaning: '你的信号强度为…（1-5级）', note: '早期信号报告，现已被RST取代', hot: false },
-      { code: 'QRH', meaning: '我的频率在变动', note: '', hot: false },
-      { code: 'QRI', meaning: '我的音调是…（1好/2变/3坏）', note: '', hot: false },
-      { code: 'QRK', meaning: '你的信号可辩度是…（1-5级）', note: '等同RST中的R', hot: false },
-    ],
-  },
-  {
-    title: '其他常用',
-    hot: false,
-    codes: [
-      { code: 'QSO', meaning: '我能直接（或通过他台）与某台联络', note: '泛指一次通联', hot: true },
-      { code: 'QTH', meaning: '我的位置是…', note: '常用于介绍操作地点', hot: true },
-      { code: 'QTR', meaning: '现在准确时间是…', note: '报时', hot: false },
-      { code: 'QRV', meaning: '我准备好了', note: '也用于约定活动：QRV IN WAPC?', hot: false },
-      { code: 'QRD', meaning: '我前往…，来自…', note: '', hot: false },
-      { code: 'QRY', meaning: '我的发报次序是第…号', note: '', hot: false },
-    ],
-  },
-]
-
-// ─── Q code detail ─────────────────────────────────────────────────────────────
-function QCodeDetail() {
-  const [open, setOpen] = useState<Record<number, boolean>>(
-    Object.fromEntries(Q_GROUPS.map((g, i) => [i, g.hot]))
-  )
-  const toggle = (i: number) => setOpen(v => ({ ...v, [i]: !v[i] }))
-
-  return (
-    <div className="space-y-3">
-      {Q_GROUPS.map((g, i) => (
-        <div key={i} className={cn('rounded-xl border bg-card divide-y', g.hot && 'border-amber-200 dark:border-amber-700')}>
-          <button className="w-full flex items-center justify-between px-4 py-3" onClick={() => toggle(i)}>
-            <span className="flex items-center gap-1.5 text-sm font-semibold">
-              {g.hot && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
-              {g.title}
-            </span>
-            {open[i] ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          </button>
-          {open[i] && (
-            <ul className="py-1 divide-y divide-border/40">
-              {g.codes.map((c, j) => (
-                <li key={j} className={cn('flex gap-3 items-start px-4 py-2.5 text-xs', c.hot && 'bg-amber-50 dark:bg-amber-950/20')}>
-                  <span className={cn('shrink-0 font-mono font-bold text-sm w-10', c.hot ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
-                    {c.code}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <span className={c.hot ? 'font-medium' : ''}>{c.meaning}</span>
-                    {c.note && <span className="ml-1.5 text-muted-foreground">— {c.note}</span>}
-                  </div>
-                  {c.hot && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400 mt-0.5" />}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ))}
-
-      <div className="rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4 text-xs space-y-1.5">
-        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">🧠 易混淆对比</div>
-        <p><strong>QRO vs QRP</strong>：O=增大功率，P=降低功率（/QRP追加表示小功率挑战）</p>
-        <p><strong>QRQ vs QRS</strong>：Q=加快，S=放慢（Really Slow）</p>
-        <p><strong>QRT vs QSY</strong>：T=关机，Y=改频（不是结束）</p>
-        <p><strong>QRU vs QRL</strong>：U=无事/结束前用，L=忙/占用频率用</p>
-        <p><strong>QRM vs QRN</strong>：M=人为干扰，N=天然噪声</p>
-        <p><strong>QSL vs QSO vs QSP</strong>：L=确认，O=联络本身，P=转信</p>
-      </div>
-    </div>
-  )
-}
-
+import { getKnowledge } from '@/lib/knowledge'
 
 const ENTRIES = [
-  {
-    key: 'freq',
-    Icon: Zap,
-    title: '频率管理',
-    desc: '频谱划分、业余波段、功率限制',
-    hot: true,
-    Detail: FrequencyDetail,
-  },
-  {
-    key: 'law',
-    Icon: Scale,
-    title: '法规管理',
-    desc: '执照、法规层级、操作规范',
-    hot: true,
-    Detail: LawDetail,
-  },
-  {
-    key: 'qcode',
-    Icon: Radio,
-    title: 'Q 短语',
-    desc: 'Q简语速查、易混淆对比、CW操作',
-    hot: true,
-    Detail: QCodeDetail,
-  },
+  { key: 'freq',   Icon: Zap,   desc: '频谱划分、业余波段、功率限制', hot: true  },
+  { key: 'law',    Icon: Scale, desc: '执照、法规层级、操作规范',     hot: true  },
+  { key: 'qcode',  Icon: Radio, desc: 'Q简语速查、易混淆对比、CW操作', hot: true  },
 ]
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Knowledge() {
   const [active, setActive] = useState<string | null>(null)
-  const entry = ENTRIES.find(e => e.key === active)
+
+  const entry = active ? getKnowledge(active) : null
+  const meta  = ENTRIES.find(e => e.key === active)
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-4 pb-4">
-      {/* detail view */}
-      {entry ? (
+      {entry && meta ? (
         <>
           <button
             onClick={() => setActive(null)}
@@ -401,35 +29,51 @@ export default function Knowledge() {
             知识库
           </button>
           <div className="flex items-center gap-2 mb-5">
-            <entry.Icon className={cn('h-5 w-5', entry.hot ? 'text-amber-500' : 'text-muted-foreground')} />
+            <meta.Icon className={cn('h-5 w-5', meta.hot ? 'text-amber-500' : 'text-muted-foreground')} />
             <h1 className="text-lg font-bold">{entry.title}</h1>
           </div>
-          <entry.Detail />
+          <div className="prose prose-sm dark:prose-invert max-w-none
+            [&_table]:w-full [&_table]:text-xs [&_table]:border-collapse
+            [&_th]:border [&_th]:border-border [&_th]:bg-muted/60 [&_th]:px-2 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-semibold
+            [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5
+            [&_tr:nth-child(even)_td]:bg-muted/30
+            [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:border-b [&_h2]:pb-1
+            [&_p]:my-1.5 [&_p]:text-sm
+            [&_li]:text-sm [&_ul]:pl-5 [&_ul]:space-y-1
+            [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_code]:text-xs
+            [&_strong]:font-semibold
+          ">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {entry.content}
+            </ReactMarkdown>
+          </div>
         </>
       ) : (
-        /* list view */
         <>
           <h1 className="text-lg font-bold mb-4">知识库</h1>
           <div className="space-y-2">
-            {ENTRIES.map(({ key, Icon, title, desc, hot }) => (
-              <button
-                key={key}
-                onClick={() => setActive(key)}
-                className="w-full flex items-center gap-4 rounded-xl border bg-card px-4 py-4 text-left transition-colors hover:bg-muted/50 active:bg-muted"
-              >
-                <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', hot ? 'bg-amber-50 dark:bg-amber-950/30' : 'bg-muted')}>
-                  <Icon className={cn('h-5 w-5', hot ? 'text-amber-500' : 'text-muted-foreground')} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    {hot && <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />}
-                    <span className="font-semibold text-sm">{title}</span>
+            {ENTRIES.map(({ key, Icon, desc, hot }) => {
+              const info = getKnowledge(key)
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActive(key)}
+                  className="w-full flex items-center gap-4 rounded-xl border bg-card px-4 py-4 text-left transition-colors hover:bg-muted/50 active:bg-muted"
+                >
+                  <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', hot ? 'bg-amber-50 dark:bg-amber-950/30' : 'bg-muted')}>
+                    <Icon className={cn('h-5 w-5', hot ? 'text-amber-500' : 'text-muted-foreground')} />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </button>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {hot && <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />}
+                      <span className="font-semibold text-sm">{info?.title ?? key}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{desc}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </button>
+              )
+            })}
           </div>
         </>
       )}
