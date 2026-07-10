@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+import { cn, seededShuffle } from '@/lib/utils'
 import type { Question } from '@/types/question'
 import { CheckCircle, XCircle } from 'lucide-react'
 
@@ -15,6 +15,16 @@ interface Props {
 export function QuestionCard({ question, selected, onSelect, submitted, showAnswer, index, total }: Props) {
   const isCorrect = (key: string) => question.answer_keys.includes(key)
   const isSelected = (key: string) => selected.includes(key)
+
+  // Deterministic per-day per-question shuffle — render only, DB stores original keys
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const displayOptions = seededShuffle(question.options, `${dateStr}:${question.id}`)
+
+  // Position labels: slot 0 → "A", slot 1 → "B", ...
+  const posLabels = ['A', 'B', 'C', 'D', 'E']
+  // Map original key → display label (for showing correct-answer hint)
+  const origToDisplay: Record<string, string> = {}
+  displayOptions.forEach((opt, i) => { origToDisplay[opt.key] = posLabels[i] })
 
   const handleClick = (key: string) => {
     if (submitted) return
@@ -42,7 +52,8 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
       </div>
 
       <div className="flex flex-col gap-2">
-        {question.options.map((opt) => {
+        {displayOptions.map((opt, i) => {
+          const displayLabel = posLabels[i]
           const sel = isSelected(opt.key)
           const correct = isCorrect(opt.key)
           let variant = 'default'
@@ -76,7 +87,7 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
                 variant === 'missed' && 'border-green-400 bg-transparent text-green-600',
                 variant === 'default' && 'border-muted-foreground/40',
               )}>
-                {opt.key}
+                {displayLabel}
               </span>
               <span className="flex-1 leading-relaxed">{opt.text}</span>
               {submitted && correct && <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />}
@@ -90,7 +101,7 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:bg-amber-950/30">
           <span className="font-medium text-amber-700 dark:text-amber-400">正确答案：</span>
           <span className="text-amber-800 dark:text-amber-300">
-            {question.answer_keys.join('、')}
+            {question.answer_keys.map(k => origToDisplay[k] ?? k).join('、')}
           </span>
         </div>
       )}
