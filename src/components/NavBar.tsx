@@ -1,8 +1,29 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Home, BookOpen, ClipboardList, AlertCircle, BookMarked, BarChart2, BookText, Settings, X } from 'lucide-react'
+import { Home, BookOpen, ClipboardList, AlertCircle, BookMarked, BarChart2, BookText, Settings, X, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FontSizeToggle } from './FontSizeToggle'
+import { db } from '@/db'
+
+// 41 questions removed in v20250728 — study records for these are stale
+const REMOVED_IDS = [
+  'A-59','A-87','A-100','A-128','A-140','A-155','A-166','A-170','A-174','A-178',
+  'A-204','A-208','A-212','A-216','A-220','A-224','A-253','A-265','A-269','A-312',
+  'A-334','A-347','A-365','A-377','A-386','A-394','A-398','A-423','A-436','A-510',
+  'A-536','A-547','A-572','A-576','A-580','A-597','A-619','A-641','A-645','A-675','A-683',
+]
+
+async function cleanObsoleteRecords() {
+  const recordIds = await db.records
+    .where('questionId').anyOf(REMOVED_IDS)
+    .primaryKeys()
+  const srsIds = await db.srs_cards
+    .where('questionId').anyOf(REMOVED_IDS)
+    .primaryKeys()
+  await db.records.bulkDelete(recordIds as number[])
+  await db.srs_cards.bulkDelete(srsIds as number[])
+  return { records: recordIds.length, srsCards: srsIds.length }
+}
 
 const tabs = [
   { to: '/', label: '首页', Icon: Home },
@@ -16,6 +37,19 @@ const tabs = [
 
 export function NavBar() {
   const [open, setOpen] = useState(false)
+  const [cleaning, setCleaning] = useState(false)
+  const [cleanResult, setCleanResult] = useState<{ records: number; srsCards: number } | null>(null)
+
+  async function handleClean() {
+    setCleaning(true)
+    setCleanResult(null)
+    try {
+      const result = await cleanObsoleteRecords()
+      setCleanResult(result)
+    } finally {
+      setCleaning(false)
+    }
+  }
 
   return (
     <>
@@ -38,7 +72,7 @@ export function NavBar() {
             </NavLink>
           ))}
           <button
-            onClick={() => setOpen(true)}
+            onClick={() => { setOpen(true); setCleanResult(null) }}
             className="flex flex-col items-center gap-1 px-2 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
             aria-label="设置"
           >
@@ -58,14 +92,51 @@ export function NavBar() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-5">
-              <span className="font-semibold text-base">显示设置</span>
+              <span className="font-semibold text-base">设置</span>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex items-center justify-between">
+
+            {/* Font size */}
+            <div className="flex items-center justify-between mb-5">
               <span className="text-sm text-muted-foreground">字体大小</span>
               <FontSizeToggle />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t mb-5" />
+
+            {/* Clean obsolete records */}
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">清理旧版题目记录</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    题库 v20250728 删除了 41 道旧题，清理这些题的答题记录和 SRS 复习卡，避免干扰统计数据。
+                  </div>
+                </div>
+                <button
+                  onClick={handleClean}
+                  disabled={cleaning}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium shrink-0 transition-colors',
+                    cleaning
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                      : 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50',
+                  )}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {cleaning ? '清理中…' : '清理'}
+                </button>
+              </div>
+              {cleanResult && (
+                <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 px-3 py-2 text-xs text-green-700 dark:text-green-400">
+                  {cleanResult.records + cleanResult.srsCards === 0
+                    ? '无旧题记录，无需清理。'
+                    : `已清理：答题记录 ${cleanResult.records} 条，复习卡 ${cleanResult.srsCards} 张。`}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -16,20 +16,20 @@ const SPECTRUM = [
 
 // BANDS sorted by ascending frequency (freqHz = lower bound in Hz for sort key)
 const BANDS = [
-  { name: '160米',     freq: '1.8-2 MHz',           freqHz: 1.8e6,    power: 'A类25W',     note: '主要业务',         hot: false },
-  { name: '80米',      freq: '3.5-3.9 MHz',          freqHz: 3.5e6,    power: 'A类25W',     note: '主要业务',         hot: false },
-  { name: '40米★',    freq: '7.0-7.2 MHz',           freqHz: 7.0e6,    power: 'A类25W',     note: '主要业务(ITU三区)',  hot: true  },
-  { name: '30米',      freq: '10.1-10.15 MHz',        freqHz: 10.1e6,   power: 'A类25W',     note: '次要业务',         hot: false },
-  { name: '20米★★',   freq: '14.0-14.35 MHz',         freqHz: 14.0e6,   power: 'A类25W',     note: '主要业务',         hot: true  },
-  { name: '17米',      freq: '18.068-18.168 MHz',      freqHz: 18.068e6, power: 'A类25W',     note: '主要业务',         hot: false },
-  { name: '15米',      freq: '21.0-21.45 MHz',         freqHz: 21.0e6,   power: 'A类25W',     note: '主要业务',         hot: false },
-  { name: '12米',      freq: '24.89-24.99 MHz',        freqHz: 24.89e6,  power: 'A类25W',     note: '主要业务',         hot: false },
-  { name: '10米',      freq: '28-29.7 MHz',            freqHz: 28e6,     power: 'A类25W',     note: '主要业务',         hot: false },
-  { name: '6米★',     freq: '50-54 MHz',              freqHz: 50e6,     power: 'A类25W',     note: '主要业务',         hot: true  },
-  { name: '2米★★',    freq: '144-148 MHz',            freqHz: 144e6,    power: 'A类25W',     note: '主要业务',         hot: true  },
-  { name: '70厘米★★', freq: '430-440 MHz',            freqHz: 430e6,    power: 'A/B/C类10W', note: '次要业务',         hot: true  },
-  { name: '23厘米',    freq: '1240-1300 MHz',          freqHz: 1240e6,   power: '10W',        note: '次要业务',         hot: false },
-  { name: '13厘米',    freq: '2300-2450 MHz',          freqHz: 2300e6,   power: '10W',        note: '次要业务',         hot: false },
+  { name: '160米',     freq: '1.8-2 MHz',           freqHz: 1.8e6,    power: 'A类25W',      note: '主要业务',              hot: false },
+  { name: '80米',      freq: '3.5-3.9 MHz',          freqHz: 3.5e6,    power: 'A类25W',      note: '主要业务',              hot: false },
+  { name: '40米★',    freq: '7.0-7.2 MHz',           freqHz: 7.0e6,    power: 'A类25W',      note: '主要业务(ITU三区)',      hot: true  },
+  { name: '30米',      freq: '10.1-10.15 MHz',        freqHz: 10.1e6,   power: 'A类25W',      note: '次要业务',              hot: false },
+  { name: '20米★★',   freq: '14.0-14.35 MHz',         freqHz: 14.0e6,   power: 'A类25W',      note: '专用/主要业务★',        hot: true  },
+  { name: '17米',      freq: '18.068-18.168 MHz',      freqHz: 18.068e6, power: 'A类25W',      note: '主要业务',              hot: false },
+  { name: '15米',      freq: '21.0-21.45 MHz',         freqHz: 21.0e6,   power: 'A类25W',      note: '专用',                  hot: false },
+  { name: '12米',      freq: '24.89-24.99 MHz',        freqHz: 24.89e6,  power: 'A类25W',      note: '主要业务',              hot: false },
+  { name: '10米',      freq: '28-29.7 MHz',            freqHz: 28e6,     power: 'A类25W',      note: '专用',                  hot: false },
+  { name: '6米★',     freq: '50-54 MHz',              freqHz: 50e6,     power: 'A类25W',      note: '主要业务',              hot: true  },
+  { name: '2米★★',    freq: '144-148 MHz',            freqHz: 144e6,    power: 'A/B/C类≤25W', note: '主要业务',              hot: true  },
+  { name: '70厘米★★', freq: '430-440 MHz',            freqHz: 430e6,    power: 'A/B/C类≤25W', note: '次要业务',              hot: true  },
+  { name: '23厘米',    freq: '1240-1300 MHz',          freqHz: 1240e6,   power: '≤25W',        note: '次要业务',              hot: false },
+  { name: '13厘米',    freq: '2300-2450 MHz',          freqHz: 2300e6,   power: '≤25W',        note: '次要业务',              hot: false },
 ].sort((a, b) => a.freqHz - b.freqHz)
 
 const LAW_GROUPS = [
@@ -37,13 +37,14 @@ const LAW_GROUPS = [
     title: '许可证 & 执照',
     hot: true,
     points: [
-      { text: 'A类操作证（操作技术能力验证证书）：长期有效，无固定有效期，无需审验', hot: true },
-      { text: 'A类：仅限 430MHz以下频段，最大发射功率 25W（短波）/ 10W（VHF/UHF）', hot: true },
-      { text: 'B/C类：可使用 430-440MHz，最大 10W', hot: true },
-      { text: '操作证书由中国无线电运动协会（CRSA）颁发', hot: false },
+      { text: '操作技术能力验证证书由无线电管理机构颁发（非CRSA）★★', hot: true },
+      { text: 'A类操作证：长期有效，无固定有效期，无需审验', hot: true },
+      { text: 'A类：30-3000MHz（VHF+UHF），最大发射功率 ≤25W', hot: true },
+      { text: 'B类：30MHz以下 <15W，30MHz以上（含VHF/UHF/430MHz）≤25W', hot: true },
+      { text: 'C类：HF ≤1000W，VHF/UHF ≤25W', hot: true },
       { text: '无线电台执照由工信部颁发，有效期不超过5年', hot: true },
       { text: '执照到期前30个工作日申请延续（更换执照，非年审）', hot: true },
-      { text: '新版2024年已取消定期审验，改为无委定期上门检查检测', hot: true },
+      { text: '2024年已取消定期审验，改为无委定期上门检查检测', hot: false },
     ],
   },
   {
@@ -187,7 +188,7 @@ function FrequencyDetail() {
         <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">🧠 记忆口诀</div>
         <p><strong>ABC三类</strong>：A类限短波（25W），B/C类可用430MHz（10W）</p>
         <p><strong>波段名</strong>：频率越低→波长越长（160米≈1.8MHz）</p>
-        <p><strong>主次业务</strong>：次要业务不可干扰主要业务</p>
+        <p><strong>业务地位</strong>：专用 &gt; 主要业务 &gt; 次要业务（20米波段 14-14.25专用 / 14.25-14.35主要）</p>
         <p><strong>高频考点</strong>：135.7kHz / 1.8MHz / 50MHz / 144MHz / 430MHz ★★</p>
       </div>
     </div>
