@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Zap, Scale, ChevronRight, ChevronDown, Star, ArrowLeft } from 'lucide-react'
+import { Zap, Scale, Radio, ChevronRight, ChevronDown, Star, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Spectrum data — sorted low→high frequency ────────────────────────────────
@@ -239,7 +239,123 @@ function LawDetail() {
   )
 }
 
-// ─── Knowledge entries ────────────────────────────────────────────────────────
+// ─── Q code data ──────────────────────────────────────────────────────────────
+const Q_GROUPS = [
+  {
+    title: '高频必考（出题5次以上）',
+    hot: true,
+    codes: [
+      { code: 'QSL', meaning: '我确认抄收了你所发送的消息', note: '也指QSL卡片确认联络（19题）', hot: true },
+      { code: 'QSY', meaning: '我要改变发射频率至…千赫/兆赫', note: '协商改频（9题）', hot: true },
+      { code: 'QRT', meaning: '我要关闭收发信机了，再见', note: '结束通联/关机（6题）', hot: true },
+      { code: 'QRU', meaning: '我这里没有要发给你的消息', note: '结束前询问/告知无事（6题）', hot: true },
+      { code: 'QRQ', meaning: '请加快发报速度', note: '与QRS对比（5题）', hot: true },
+      { code: 'QRS', meaning: '请放慢发报速度', note: '与QRQ对比（5题）', hot: true },
+      { code: 'QRV', meaning: '我准备好收信了', note: '表示就绪（5题）', hot: true },
+      { code: 'QSD', meaning: '你的电台存在键控缺陷', note: 'CW发报手法问题（5题）', hot: true },
+      { code: 'QSP', meaning: '我可以将你的消息转信至某台', note: '中继/转信操作（5题）', hot: true },
+    ],
+  },
+  {
+    title: '功率 & 速度',
+    hot: true,
+    codes: [
+      { code: 'QRO', meaning: '我已增大发射功率', note: '疑问：要我加大功率吗？', hot: true },
+      { code: 'QRP', meaning: '我已降低发射功率', note: '低功率挑战 ≤5W，如 BH1ZZZ/QRP', hot: true },
+      { code: 'QRQ', meaning: '请加快发报速度', note: '', hot: false },
+      { code: 'QRS', meaning: '请放慢发报速度', note: 'Really Slow 辅助记忆', hot: false },
+    ],
+  },
+  {
+    title: '频率 & 联络状态',
+    hot: true,
+    codes: [
+      { code: 'QRZ', meaning: '呼叫我的是哪台？', note: '疑问常用（3题）', hot: true },
+      { code: 'QRL', meaning: '我正忙于联络（频率被使用）', note: '发呼前先问"QRL？"', hot: true },
+      { code: 'QRM', meaning: '我受到人为干扰', note: '人为干扰（man-made）', hot: true },
+      { code: 'QRN', meaning: '我受到天电干扰（自然噪声）', note: '天电/雷电/静电（nature）', hot: true },
+      { code: 'QSB', meaning: '你的信号正在衰落', note: '信号衰落（fading）', hot: true },
+      { code: 'QSX', meaning: '我正在…千赫守听', note: '守听另一频率', hot: false },
+      { code: 'QRB', meaning: '我与你台之间的距离约为…', note: '', hot: false },
+    ],
+  },
+  {
+    title: 'CW 操作',
+    hot: false,
+    codes: [
+      { code: 'QSK', meaning: '发报时我能在电码间隙听到对方', note: '全双工CW（break-in）', hot: true },
+      { code: 'QSD', meaning: '你的电台存在键控缺陷', note: '交流声/键击声/接触不良', hot: false },
+      { code: 'QSA', meaning: '你的信号强度为…（1-5级）', note: '早期信号报告，现已被RST取代', hot: false },
+      { code: 'QRH', meaning: '我的频率在变动', note: '', hot: false },
+      { code: 'QRI', meaning: '我的音调是…（1好/2变/3坏）', note: '', hot: false },
+      { code: 'QRK', meaning: '你的信号可辩度是…（1-5级）', note: '等同RST中的R', hot: false },
+    ],
+  },
+  {
+    title: '其他常用',
+    hot: false,
+    codes: [
+      { code: 'QSO', meaning: '我能直接（或通过他台）与某台联络', note: '泛指一次通联', hot: true },
+      { code: 'QTH', meaning: '我的位置是…', note: '常用于介绍操作地点', hot: true },
+      { code: 'QTR', meaning: '现在准确时间是…', note: '报时', hot: false },
+      { code: 'QRV', meaning: '我准备好了', note: '也用于约定活动：QRV IN WAPC?', hot: false },
+      { code: 'QRD', meaning: '我前往…，来自…', note: '', hot: false },
+      { code: 'QRY', meaning: '我的发报次序是第…号', note: '', hot: false },
+    ],
+  },
+]
+
+// ─── Q code detail ─────────────────────────────────────────────────────────────
+function QCodeDetail() {
+  const [open, setOpen] = useState<Record<number, boolean>>(
+    Object.fromEntries(Q_GROUPS.map((g, i) => [i, g.hot]))
+  )
+  const toggle = (i: number) => setOpen(v => ({ ...v, [i]: !v[i] }))
+
+  return (
+    <div className="space-y-3">
+      {Q_GROUPS.map((g, i) => (
+        <div key={i} className={cn('rounded-xl border bg-card divide-y', g.hot && 'border-amber-200 dark:border-amber-700')}>
+          <button className="w-full flex items-center justify-between px-4 py-3" onClick={() => toggle(i)}>
+            <span className="flex items-center gap-1.5 text-sm font-semibold">
+              {g.hot && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
+              {g.title}
+            </span>
+            {open[i] ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          </button>
+          {open[i] && (
+            <ul className="py-1 divide-y divide-border/40">
+              {g.codes.map((c, j) => (
+                <li key={j} className={cn('flex gap-3 items-start px-4 py-2.5 text-xs', c.hot && 'bg-amber-50 dark:bg-amber-950/20')}>
+                  <span className={cn('shrink-0 font-mono font-bold text-sm w-10', c.hot ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>
+                    {c.code}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className={c.hot ? 'font-medium' : ''}>{c.meaning}</span>
+                    {c.note && <span className="ml-1.5 text-muted-foreground">— {c.note}</span>}
+                  </div>
+                  {c.hot && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400 mt-0.5" />}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+
+      <div className="rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4 text-xs space-y-1.5">
+        <div className="font-semibold text-blue-700 dark:text-blue-400 mb-2">🧠 易混淆对比</div>
+        <p><strong>QRO vs QRP</strong>：O=增大功率，P=降低功率（/QRP追加表示小功率挑战）</p>
+        <p><strong>QRQ vs QRS</strong>：Q=加快，S=放慢（Really Slow）</p>
+        <p><strong>QRT vs QSY</strong>：T=关机，Y=改频（不是结束）</p>
+        <p><strong>QRU vs QRL</strong>：U=无事/结束前用，L=忙/占用频率用</p>
+        <p><strong>QRM vs QRN</strong>：M=人为干扰，N=天然噪声</p>
+        <p><strong>QSL vs QSO vs QSP</strong>：L=确认，O=联络本身，P=转信</p>
+      </div>
+    </div>
+  )
+}
+
+
 const ENTRIES = [
   {
     key: 'freq',
@@ -257,7 +373,14 @@ const ENTRIES = [
     hot: true,
     Detail: LawDetail,
   },
-  // Future entries go here
+  {
+    key: 'qcode',
+    Icon: Radio,
+    title: 'Q 短语',
+    desc: 'Q简语速查、易混淆对比、CW操作',
+    hot: true,
+    Detail: QCodeDetail,
+  },
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
