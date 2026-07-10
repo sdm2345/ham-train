@@ -26,13 +26,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 src/
-  pages/       Home  Practice  Exam  ErrorBook
-  components/  NavBar  CategoryCard  QuestionCard
+  pages/       Home  Practice  Exam  ErrorBook  Knowledge
+  components/  NavBar  CategoryCard  QuestionCard  TipPanel
   db/          index.ts（Dexie schema）  seed.ts（首次加载 bulkAdd）
   hooks/       useStudyStats.ts（live query 统计）
   store/       session.ts（Zustand 考试会话）
   types/       question.ts  study.ts
   lib/         utils.ts（cn / shuffle / formatTime）
+               tips.ts（import.meta.glob 加载 tips/*.md）
+               knowledge.ts（import.meta.glob 加载 knowledge/*.md，解析 frontmatter）
+  tips/        A-xxx.md（每题速记提示，纯 markdown）
+  knowledge/   freq.md  law.md  qcode.md（知识库条目）
 public/
   data/A-tagged.json   # 683题，含 tag + category 字段
 scripts/
@@ -77,6 +81,24 @@ records:    ++id, questionId, timestamp, isCorrect, [questionId+isCorrect]
 **`seedIfEmpty` 幂等性**：模块级 promise 变量保证同一会话只 fetch 一次，`App.tsx` useEffect 触发。若 IndexedDB 已有数据则立即返回。
 
 **`merge-tags.mjs` 依赖**：需要兄弟目录 `../ham-exam-web/public/questions/A.json` 和 `../ham-exam-web/A/questions_tagged.csv` 才能运行，这两个文件不在本仓库内。
+
+## 知识库系统
+
+知识库条目存放在 `src/knowledge/*.md`，格式：
+
+```
+title: 条目标题
+---
+正文 markdown（支持表格、加粗、列表等 GFM 语法）
+```
+
+`src/lib/knowledge.ts` 通过 `import.meta.glob(..., { eager: true, query: '?raw' })` 在构建时内联所有 `.md` 文件，解析 frontmatter 提取 `title`，暴露 `getKnowledge(key)` 供 `Knowledge.tsx` 调用。
+
+**新增知识条目步骤**：
+1. 在 `src/knowledge/` 新建 `xxx.md`，写好 `title:` 和正文
+2. 在 `src/pages/Knowledge.tsx` 的 `ENTRIES` 数组中加一行（key / Icon / desc / hot）
+
+同理，`src/tips/*.md` 是每道题的速记提示，`src/lib/tips.ts` 同样用 glob import，`TipPanel.tsx` 渲染（支持 KaTeX 数学公式）。
 
 ## 已知注意事项
 
