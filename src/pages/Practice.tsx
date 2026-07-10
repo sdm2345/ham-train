@@ -148,6 +148,13 @@ export function Practice() {
     navigate(`/practice?${next.toString()}`, { replace: true })
   }
 
+  const handleShuffleToggle = (checked: boolean) => {
+    const next = new URLSearchParams(params)
+    if (checked) next.set('shuffle', '1')
+    else next.delete('shuffle')
+    navigate(`/practice?${next.toString()}`, { replace: true })
+  }
+
   if (allPracticed) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center space-y-4">
@@ -222,17 +229,28 @@ export function Practice() {
         <span>{index + 1} / {questions.length}</span>
       </div>
 
-      {/* Untried filter */}
+      {/* Filters */}
       {!singleId && (
-        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none w-fit">
-          <input
-            type="checkbox"
-            checked={untriedOnly}
-            onChange={(e) => handleUntriedToggle(e.target.checked)}
-            className="h-4 w-4 rounded border-muted-foreground/40 accent-primary"
-          />
-          只做未练习
-        </label>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={untriedOnly}
+              onChange={(e) => handleUntriedToggle(e.target.checked)}
+              className="h-4 w-4 rounded border-muted-foreground/40 accent-primary"
+            />
+            只做未练习
+          </label>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={doShuffle}
+              onChange={(e) => handleShuffleToggle(e.target.checked)}
+              className="h-4 w-4 rounded border-muted-foreground/40 accent-primary"
+            />
+            随机
+          </label>
+        </div>
       )}
 
       {/* Main content: question left, tip slides in from right on lg */}
