@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, RotateCcw, Hash } from 'lucide-react'
 import { QuestionCard } from '@/components/QuestionCard'
 import { TipPanel } from '@/components/TipPanel'
 import { db } from '@/db'
-import { shuffle } from '@/lib/utils'
+import { shuffle, seededShuffle, buildOrigToDisplay, remapTipLabels } from '@/lib/utils'
 import { getTip } from '@/lib/tips'
 import type { Question } from '@/types/question'
 import type { StudyRecord } from '@/types/study'
@@ -204,7 +204,11 @@ export function Practice() {
     )
   }
 
-  const tip = getTip(current.id)
+  const rawTip = getTip(current.id)
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const displayOptions = seededShuffle(current.options, `${dateStr}:${current.id}`)
+  const origToDisplay = buildOrigToDisplay(displayOptions)
+  const tip = rawTip ? remapTipLabels(rawTip, origToDisplay) : null
   const showTip = submitted && !!tip
 
   return (

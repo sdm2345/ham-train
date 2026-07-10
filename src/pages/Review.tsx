@@ -9,7 +9,7 @@ import { getTip } from '@/lib/tips'
 import type { Question } from '@/types/question'
 import type { SRSCard } from '@/types/srs'
 import { BOX_LABELS } from '@/types/srs'
-import { shuffle } from '@/lib/utils'
+import { shuffle, seededShuffle, buildOrigToDisplay, remapTipLabels } from '@/lib/utils'
 
 interface SessionStats {
   correct: number
@@ -213,7 +213,13 @@ export function Review() {
   }
 
   const card = queue[queueIndex]
-  const tip = currentQuestion ? getTip(currentQuestion.id) : null
+  const rawTip = currentQuestion ? getTip(currentQuestion.id) : null
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const displayOptions = currentQuestion
+    ? seededShuffle(currentQuestion.options, `${dateStr}:${currentQuestion.id}`)
+    : []
+  const origToDisplay = buildOrigToDisplay(displayOptions)
+  const tip = rawTip ? remapTipLabels(rawTip, origToDisplay) : null
   const showTip = submitted && !!tip
 
   return (

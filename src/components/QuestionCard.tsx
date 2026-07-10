@@ -1,4 +1,4 @@
-import { cn, seededShuffle } from '@/lib/utils'
+import { cn, seededShuffle, buildOrigToDisplay } from '@/lib/utils'
 import type { Question } from '@/types/question'
 import { CheckCircle, XCircle } from 'lucide-react'
 
@@ -23,8 +23,7 @@ export function QuestionCard({ question, selected, onSelect, submitted, showAnsw
   // Position labels: slot 0 → "A", slot 1 → "B", ...
   const posLabels = ['A', 'B', 'C', 'D', 'E']
   // Map original key → display label (for showing correct-answer hint)
-  const origToDisplay: Record<string, string> = {}
-  displayOptions.forEach((opt, i) => { origToDisplay[opt.key] = posLabels[i] })
+  const origToDisplay = buildOrigToDisplay(displayOptions)
 
   const handleClick = (key: string) => {
     if (submitted) return
