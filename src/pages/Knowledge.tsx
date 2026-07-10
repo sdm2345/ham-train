@@ -2,34 +2,35 @@ import { useState } from 'react'
 import { Zap, Scale, ChevronRight, ChevronDown, Star, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ─── Spectrum data ─────────────────────────────────────────────────────────────
+// ─── Spectrum data — sorted low→high frequency ────────────────────────────────
 const SPECTRUM = [
-  { abbr: 'VLF', band: '万米波', amateur: '', hot: false },
-  { abbr: 'LF',  band: '千米波', amateur: '135.7-137.8 kHz ★', hot: true },
-  { abbr: 'MF',  band: '百米波', amateur: '1.8-2 MHz ★', hot: true },
-  { abbr: 'HF',  band: '十米波', amateur: '3.5/7/10/14/18/21/24/28 MHz', hot: true },
-  { abbr: 'VHF', band: '米波',   amateur: '50-54 / 144-148 MHz ★', hot: true },
-  { abbr: 'UHF', band: '分米波', amateur: '430-440 MHz ★★', hot: true },
-  { abbr: 'SHF', band: '厘米波', amateur: '2.3G / 5.65G / 10G', hot: false },
-  { abbr: 'EHF', band: '毫米波', amateur: '24G / 47G / 241G', hot: false },
+  { abbr: 'VLF', full: 'Very Low Frequency',      cn: '甚低频', range: '3-30 kHz',     band: '万米波', amateur: '',                                hot: false },
+  { abbr: 'LF',  full: 'Low Frequency',            cn: '低频',   range: '30-300 kHz',   band: '千米波', amateur: '135.7-137.8 kHz ★',               hot: true  },
+  { abbr: 'MF',  full: 'Medium Frequency',         cn: '中频',   range: '300k-3 MHz',   band: '百米波', amateur: '1.8-2 MHz ★',                     hot: true  },
+  { abbr: 'HF',  full: 'High Frequency',           cn: '高频',   range: '3-30 MHz',     band: '十米波', amateur: '3.5/7/10/14/18/21/24/28 MHz',     hot: true  },
+  { abbr: 'VHF', full: 'Very High Frequency',      cn: '甚高频', range: '30-300 MHz',   band: '米波',   amateur: '50-54 / 144-148 MHz ★',           hot: true  },
+  { abbr: 'UHF', full: 'Ultra High Frequency',     cn: '特高频', range: '300M-3 GHz',   band: '分米波', amateur: '430-440 MHz ★★',                  hot: true  },
+  { abbr: 'SHF', full: 'Super High Frequency',     cn: '超高频', range: '3-30 GHz',     band: '厘米波', amateur: '2.3G / 5.65G / 10G',              hot: false },
+  { abbr: 'EHF', full: 'Extremely High Frequency', cn: '极高频', range: '30-300 GHz',   band: '毫米波', amateur: '24G / 47G / 241G',                hot: false },
 ]
 
+// BANDS sorted by ascending frequency (freqHz = lower bound in Hz for sort key)
 const BANDS = [
-  { name: '160米',    freq: '1.8-2 MHz',          power: 'A类25W',      note: '主要业务', hot: false },
-  { name: '80米',     freq: '3.5-3.9 MHz',         power: 'A类25W',      note: '主要业务', hot: false },
-  { name: '40米★',   freq: '7.0-7.2 MHz',          power: 'A类25W',      note: '主要业务(ITU三区)', hot: true },
-  { name: '30米',     freq: '10.1-10.15 MHz',       power: 'A类25W',      note: '次要业务', hot: false },
-  { name: '20米★★',  freq: '14.0-14.35 MHz',        power: 'A类25W',      note: '主要业务', hot: true },
-  { name: '17米',     freq: '18.068-18.168 MHz',     power: 'A类25W',      note: '主要业务', hot: false },
-  { name: '15米',     freq: '21.0-21.45 MHz',        power: 'A类25W',      note: '主要业务', hot: false },
-  { name: '12米',     freq: '24.89-24.99 MHz',       power: 'A类25W',      note: '主要业务', hot: false },
-  { name: '10米',     freq: '28-29.7 MHz',           power: 'A类25W',      note: '主要业务', hot: false },
-  { name: '6米★',    freq: '50-54 MHz',             power: 'A类25W',      note: '主要业务', hot: true },
-  { name: '2米★★',   freq: '144-148 MHz',           power: 'A类25W',      note: '主要业务', hot: true },
-  { name: '70厘米★★',freq: '430-440 MHz',           power: 'A/B/C类10W',  note: '次要业务', hot: true },
-  { name: '23厘米',   freq: '1240-1300 MHz',         power: '10W',         note: '次要业务', hot: false },
-  { name: '13厘米',   freq: '2300-2450 MHz',         power: '10W',         note: '次要业务', hot: false },
-]
+  { name: '160米',     freq: '1.8-2 MHz',           freqHz: 1.8e6,    power: 'A类25W',     note: '主要业务',         hot: false },
+  { name: '80米',      freq: '3.5-3.9 MHz',          freqHz: 3.5e6,    power: 'A类25W',     note: '主要业务',         hot: false },
+  { name: '40米★',    freq: '7.0-7.2 MHz',           freqHz: 7.0e6,    power: 'A类25W',     note: '主要业务(ITU三区)',  hot: true  },
+  { name: '30米',      freq: '10.1-10.15 MHz',        freqHz: 10.1e6,   power: 'A类25W',     note: '次要业务',         hot: false },
+  { name: '20米★★',   freq: '14.0-14.35 MHz',         freqHz: 14.0e6,   power: 'A类25W',     note: '主要业务',         hot: true  },
+  { name: '17米',      freq: '18.068-18.168 MHz',      freqHz: 18.068e6, power: 'A类25W',     note: '主要业务',         hot: false },
+  { name: '15米',      freq: '21.0-21.45 MHz',         freqHz: 21.0e6,   power: 'A类25W',     note: '主要业务',         hot: false },
+  { name: '12米',      freq: '24.89-24.99 MHz',        freqHz: 24.89e6,  power: 'A类25W',     note: '主要业务',         hot: false },
+  { name: '10米',      freq: '28-29.7 MHz',            freqHz: 28e6,     power: 'A类25W',     note: '主要业务',         hot: false },
+  { name: '6米★',     freq: '50-54 MHz',              freqHz: 50e6,     power: 'A类25W',     note: '主要业务',         hot: true  },
+  { name: '2米★★',    freq: '144-148 MHz',            freqHz: 144e6,    power: 'A类25W',     note: '主要业务',         hot: true  },
+  { name: '70厘米★★', freq: '430-440 MHz',            freqHz: 430e6,    power: 'A/B/C类10W', note: '次要业务',         hot: true  },
+  { name: '23厘米',    freq: '1240-1300 MHz',          freqHz: 1240e6,   power: '10W',        note: '次要业务',         hot: false },
+  { name: '13厘米',    freq: '2300-2450 MHz',          freqHz: 2300e6,   power: '10W',        note: '次要业务',         hot: false },
+].sort((a, b) => a.freqHz - b.freqHz)
 
 const LAW_GROUPS = [
   {
@@ -96,7 +97,7 @@ function SpectrumBar() {
             key={s.abbr}
             className={cn('flex-1 flex items-center justify-center text-[10px] font-bold text-white', s.hot && 'ring-2 ring-inset ring-white/40')}
             style={{ backgroundColor: COLORS[i] }}
-            title={s.amateur}
+            title={`${s.full} (${s.cn}) ${s.range}${s.amateur ? '\n' + s.amateur : ''}`}
           >
             {s.abbr}
           </div>
@@ -129,11 +130,17 @@ function FrequencyDetail() {
           {showSpec ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         </button>
         {showSpec && SPECTRUM.map((s) => (
-          <div key={s.abbr} className={cn('flex gap-2 items-center px-4 py-2 text-xs', s.hot && 'bg-amber-50 dark:bg-amber-950/20')}>
-            <span className={cn('w-9 shrink-0 font-bold', s.hot ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>{s.abbr}</span>
-            <span className="text-muted-foreground w-14 shrink-0">{s.band}</span>
+          <div key={s.abbr} className={cn('flex gap-2 items-start px-4 py-2.5 text-xs', s.hot && 'bg-amber-50 dark:bg-amber-950/20')}>
+            {/* abbr + full name */}
+            <div className="w-24 shrink-0">
+              <span className={cn('font-bold', s.hot ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground')}>{s.abbr}</span>
+              <span className="ml-1 text-muted-foreground">{s.cn}</span>
+            </div>
+            {/* freq range */}
+            <span className="font-mono text-[10px] text-muted-foreground w-24 shrink-0">{s.range}</span>
+            {/* amateur freq */}
             <span className={cn('flex-1', s.hot && 'font-medium')}>{s.amateur || <span className="opacity-30">—</span>}</span>
-            {s.hot && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+            {s.hot && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400 mt-0.5" />}
           </div>
         ))}
       </div>
@@ -143,6 +150,7 @@ function FrequencyDetail() {
         <button className="w-full flex items-center justify-between px-4 py-3" onClick={() => setShowBands(v => !v)}>
           <span className="flex items-center gap-1.5 text-sm font-semibold">
             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />业余波段速查表
+            <span className="text-[10px] font-normal text-muted-foreground ml-1">↑ 频率升序</span>
           </span>
           {showBands ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
         </button>
