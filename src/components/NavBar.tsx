@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Home, BookOpen, ClipboardList, AlertCircle, BookMarked, BarChart2, BookText, Settings, X, Trash2 } from 'lucide-react'
+import { Home, BookOpen, ClipboardList, AlertCircle, BookMarked, BarChart2, BookText, Settings, X, Trash2, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FontSizeToggle } from './FontSizeToggle'
 import { db } from '@/db'
+import { markSkipped } from '@/lib/srs'
+import type { Question } from '@/types/question'
 
 // 41 questions removed in v20250728 — study records for these are stale
 const REMOVED_IDS = [
@@ -39,6 +41,28 @@ export function NavBar() {
   const [open, setOpen] = useState(false)
   const [cleaning, setCleaning] = useState(false)
   const [cleanResult, setCleanResult] = useState<{ records: number; srsCards: number } | null>(null)
+  const [skipListOpen, setSkipListOpen] = useState(false)
+  const [skipList, setSkipList] = useState<Array<{ questionId: string; question: Question | undefined }>>([])
+  const [skipListLoading, setSkipListLoading] = useState(false)
+
+  async function openSkipList() {
+    setSkipListOpen(true)
+    setSkipListLoading(true)
+    try {
+      const cards = await db.srs_cards.filter((c) => c.skipped === true).toArray()
+      const ids = cards.map((c) => c.questionId)
+      const questions = await db.questions.where('id').anyOf(ids).toArray()
+      const qMap = new Map(questions.map((q) => [q.id, q]))
+      setSkipList(cards.map((c) => ({ questionId: c.questionId, question: qMap.get(c.questionId) })))
+    } finally {
+      setSkipListLoading(false)
+    }
+  }
+
+  async function removeFromSkipList(questionId: string) {
+    await markSkipped(questionId, false)
+    setSkipList((prev) => prev.filter((item) => item.questionId !== questionId))
+  }
 
   async function handleClean() {
     setCleaning(true)
@@ -104,8 +128,24 @@ export function NavBar() {
               <FontSizeToggle />
             </div>
 
+            {/* Skip list */}
+            <div className="border-t mb-5 mt-0" />
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium">免做清单</div>
+                <div className="text-xs text-muted-foreground mt-0.5">查看并管理标记为"免做"的题目</div>
+              </div>
+              <button
+                onClick={openSkipList}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium shrink-0 bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <List className="h-3.5 w-3.5" />
+                查看清单
+              </button>
+            </div>
+
             {/* Divider */}
-            <div className="border-t mb-5" />
+            <div className="border-t mb-5 mt-5" />
 
             {/* Clean obsolete records */}
             <div className="space-y-2">
@@ -137,6 +177,54 @@ export function NavBar() {
                     : `已清理：答题记录 ${cleanResult.records} 条，复习卡 ${cleanResult.srsCards} 张。`}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Skip list modal */}
+      {skipListOpen && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
+          onClick={() => setSkipListOpen(false)}
+        >
+          <div
+            className="bg-background rounded-xl border shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b shrink-0">
+              <span className="font-semibold text-base">免做清单</span>
+              <button onClick={() => setSkipListOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-2">
+              {skipListLoading ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">加载中…</div>
+              ) : skipList.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">暂无免做题目</div>
+              ) : (
+                <ul className="space-y-1">
+                  {skipList.map(({ questionId, question }) => (
+                    <li key={questionId} className="flex items-start gap-2 rounded-lg px-3 py-2 hover:bg-muted">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs text-muted-foreground font-mono">{questionId}</span>
+                        <p className="text-sm line-clamp-2 mt-0.5">{question?.question ?? '(题目未找到)'}</p>
+                      </div>
+                      <button
+                        onClick={() => removeFromSkipList(questionId)}
+                        className="shrink-0 mt-0.5 rounded-md p-1 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        title="移出免做清单"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="p-3 border-t shrink-0 text-xs text-muted-foreground text-center">
+              共 {skipList.length} 道题  ·  点击删除图标可恢复复习
             </div>
           </div>
         </div>

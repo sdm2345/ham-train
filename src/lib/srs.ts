@@ -47,6 +47,24 @@ export async function upsertSRSCard(questionId: string, correct: boolean): Promi
   })
 }
 
+export async function markGuessed(questionId: string): Promise<void> {
+  const existing = await db.srs_cards.where('questionId').equals(questionId).first()
+  const now = Date.now()
+  if (!existing) return
+  await db.srs_cards.update(existing.id!, {
+    box: 0,
+    nextReview: now,
+    lastReview: now,
+    streakCorrect: 0,
+  })
+}
+
+export async function markSkipped(questionId: string, skip: boolean): Promise<void> {
+  const existing = await db.srs_cards.where('questionId').equals(questionId).first()
+  if (!existing) return
+  await db.srs_cards.update(existing.id!, { skipped: skip })
+}
+
 export function isDue(card: SRSCard): boolean {
   return card.nextReview <= Date.now()
 }

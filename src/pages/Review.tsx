@@ -33,12 +33,22 @@ export function Review() {
   useEffect(() => {
     async function load() {
       setLoading(true)
+
+      // Only review questions that have at least one wrong record
+      const wrongRecords = await db.records.where('isCorrect').equals(0).toArray()
+      const wrongIds = new Set(wrongRecords.map((r) => r.questionId))
+
       const allCards = await db.srs_cards.toArray()
-      const dueCards = allCards.filter(isDue)
+      // Filter: must have a wrong record AND not be skipped AND be due
+      const dueCards = allCards.filter(
+        (c) => isDue(c) && wrongIds.has(c.questionId) && !c.skipped,
+      )
 
       if (dueCards.length === 0) {
-        // Check if any future cards exist
-        const futureCards = allCards.filter((c) => c.nextReview > Date.now())
+        // Check future cards (wrong + not skipped) for next due time
+        const futureCards = allCards.filter(
+          (c) => c.nextReview > Date.now() && wrongIds.has(c.questionId) && !c.skipped,
+        )
         if (futureCards.length > 0) {
           const earliest = Math.min(...futureCards.map((c) => c.nextReview))
           setNextDueTime(earliest)
@@ -124,8 +134,12 @@ export function Review() {
   }
 
   const handleRestart = async () => {
+    const wrongRecords = await db.records.where('isCorrect').equals(0).toArray()
+    const wrongIds = new Set(wrongRecords.map((r) => r.questionId))
     const allCards = await db.srs_cards.toArray()
-    const dueCards = allCards.filter(isDue)
+    const dueCards = allCards.filter(
+      (c) => isDue(c) && wrongIds.has(c.questionId) && !c.skipped,
+    )
     if (dueCards.length === 0) {
       setDone(true)
       return
@@ -161,7 +175,7 @@ export function Review() {
       <div className="mx-auto max-w-2xl px-4 py-12 text-center space-y-4">
         <BookMarked className="mx-auto h-12 w-12 text-muted-foreground/50" />
         <p className="text-xl font-bold">
-          {nextDueTime ? '今日无需复习' : '暂无复习题目，先去练习几题吧'}
+          {nextDueTime ? '今日错题已复习完毕' : '暂无需复习的错题，先去练习吧'}
         </p>
         {nextDueTime && (
           <p className="text-sm text-muted-foreground">

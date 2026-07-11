@@ -19,6 +19,11 @@ class HamTrainDB extends Dexie {
       records: '++id, questionId, timestamp, isCorrect, [questionId+isCorrect]',
       srs_cards: '++id, &questionId, box, nextReview',
     })
+    this.version(3).stores({
+      questions: '&id, tag, category',
+      records: '++id, questionId, timestamp, isCorrect, [questionId+isCorrect]',
+      srs_cards: '++id, &questionId, box, nextReview, skipped',
+    })
   }
 }
 
