@@ -44,6 +44,8 @@ export async function upsertSRSCard(questionId: string, correct: boolean): Promi
     lastReview: now,
     streakCorrect: newStreak,
     totalReviews: existing.totalReviews + 1,
+    // Clear guessed flag when correctly answered (genuinely knew it)
+    ...(correct ? { guessed: false } : {}),
   })
 }
 
@@ -56,6 +58,7 @@ export async function markGuessed(questionId: string): Promise<void> {
     nextReview: now,
     lastReview: now,
     streakCorrect: 0,
+    guessed: true,
   })
 }
 

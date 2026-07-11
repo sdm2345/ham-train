@@ -12,6 +12,57 @@ import { upsertSRSCard, markGuessed, markSkipped } from '@/lib/srs'
 
 const RETRY_INTERVAL = 5 // insert retry every N main questions answered
 
+// Build error-sorted question list.
+// Score = (wrongCount + 0.5 if guessed) / max(totalAttempts, 1)  — error rate with guessed penalty.
+// Sort: score DESC, then firstWrongTime ASC (oldest errors first within same score band).
+async function loadErrorQuestions(baseIds: Set<string> | null): Promise<Question[]> {
+  const allRecords = await db.records.toArray()
+
+  const wrongCount: Record<string, number> = {}
+  const totalCount: Record<string, number> = {}
+  const firstWrongTime: Record<string, number> = {}
+
+  for (const r of allRecords) {
+    totalCount[r.questionId] = (totalCount[r.questionId] ?? 0) + 1
+    if (r.isCorrect === 0) {
+      wrongCount[r.questionId] = (wrongCount[r.questionId] ?? 0) + 1
+      if (!firstWrongTime[r.questionId] || r.timestamp < firstWrongTime[r.questionId]) {
+        firstWrongTime[r.questionId] = r.timestamp
+      }
+    }
+  }
+
+  // Guessed cards count as a soft wrong (0.5 weight)
+  const guessedCards = await db.srs_cards.filter((c) => c.guessed === true).toArray()
+  const guessedIds = new Set(guessedCards.map((c) => c.questionId))
+
+  // Include: has wrong record OR is guessed
+  const errorIds = new Set([...Object.keys(wrongCount), ...guessedIds])
+
+  const filteredIds = baseIds
+    ? [...errorIds].filter((id) => baseIds.has(id))
+    : [...errorIds]
+
+  if (filteredIds.length === 0) return []
+
+  const questions = await db.questions.where('id').anyOf(filteredIds).toArray()
+
+  questions.sort((a, b) => {
+    const wA = (wrongCount[a.id] ?? 0) + (guessedIds.has(a.id) ? 0.5 : 0)
+    const wB = (wrongCount[b.id] ?? 0) + (guessedIds.has(b.id) ? 0.5 : 0)
+    const tA = Math.max(totalCount[a.id] ?? 1, 1)
+    const tB = Math.max(totalCount[b.id] ?? 1, 1)
+    const scoreA = wA / tA
+    const scoreB = wB / tB
+    if (scoreB !== scoreA) return scoreB - scoreA
+    const timeA = firstWrongTime[a.id] ?? Infinity
+    const timeB = firstWrongTime[b.id] ?? Infinity
+    return timeA - timeB
+  })
+
+  return questions
+}
+
 export function Practice() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -19,10 +70,12 @@ export function Practice() {
   const doShuffle = params.get('shuffle') === '1'
   const singleId = params.get('id') ?? undefined
   const untriedOnly = params.get('untried') === '1'
+  const errorsOnly = params.get('errorsOnly') === '1'
 
   // Main question queue
   const [mainQuestions, setMainQuestions] = useState<Question[]>([])
   const [mainIndex, setMainIndex] = useState(0)
+  const [loadingDone, setLoadingDone] = useState(false)
 
   // Retry queue state
   const [wrongQueue, setWrongQueue] = useState<Question[]>([])
@@ -38,51 +91,64 @@ export function Practice() {
   const [startTime, setStartTime] = useState(Date.now())
 
   // UI state
-  const [allPracticed, setAllPracticed] = useState(false)
   const [jumpOpen, setJumpOpen] = useState(false)
   const [jumpInput, setJumpInput] = useState('')
   const [jumpError, setJumpError] = useState('')
   const jumpInputRef = useRef<HTMLInputElement>(null)
 
+  const resetSession = (q: Question[]) => {
+    setMainQuestions(q)
+    setMainIndex(0)
+    setWrongQueue([])
+    setMainAnsweredCount(0)
+    setIsRetryMode(false)
+    setRetryQuestion(null)
+    setSelected([])
+    setSubmitted(false)
+    setLastCorrect(false)
+    setActionDone(null)
+    setStartTime(Date.now())
+    setLoadingDone(true)
+  }
+
   useEffect(() => {
+    setLoadingDone(false)
     async function load() {
-      let q: Question[]
       if (singleId) {
         const found = await db.questions.get(singleId)
-        q = found ? [found] : []
-      } else if (category) {
+        resetSession(found ? [found] : [])
+        return
+      }
+
+      if (errorsOnly) {
+        let baseIds: Set<string> | null = null
+        if (category) {
+          const catQs = await db.questions.where('category').equals(category).toArray()
+          baseIds = new Set(catQs.map((q) => q.id))
+        }
+        const q = await loadErrorQuestions(baseIds)
+        resetSession(doShuffle ? shuffle(q) : q)
+        return
+      }
+
+      let q: Question[]
+      if (category) {
         q = await db.questions.where('category').equals(category).toArray()
       } else {
         q = await db.questions.toArray()
       }
 
-      if (untriedOnly && !singleId) {
+      if (untriedOnly) {
         const practicedIds = new Set(
           (await db.records.orderBy('questionId').uniqueKeys()) as string[]
         )
         q = q.filter((item) => !practicedIds.has(item.id))
-        if (q.length === 0) {
-          setAllPracticed(true)
-          setMainQuestions([])
-          return
-        }
       }
 
-      setAllPracticed(false)
-      setMainQuestions(doShuffle ? shuffle(q) : q)
-      setMainIndex(0)
-      setWrongQueue([])
-      setMainAnsweredCount(0)
-      setIsRetryMode(false)
-      setRetryQuestion(null)
-      setSelected([])
-      setSubmitted(false)
-      setLastCorrect(false)
-      setActionDone(null)
-      setStartTime(Date.now())
+      resetSession(doShuffle ? shuffle(q) : q)
     }
     load()
-  }, [category, doShuffle, singleId, untriedOnly])
+  }, [category, doShuffle, singleId, untriedOnly, errorsOnly])
 
   const current = isRetryMode ? retryQuestion : mainQuestions[mainIndex]
 
@@ -119,7 +185,7 @@ export function Practice() {
     await db.records.add(record)
     await upsertSRSCard(current.id, correct)
 
-    // Add to wrong queue if incorrect (both main and retry)
+    // Wrong answer → add to retry queue
     if (!correct) {
       setWrongQueue((prev) => [...prev, current])
     }
@@ -134,22 +200,18 @@ export function Practice() {
       let newWQ = [...currentWQ]
 
       if (isRetryMode) {
-        // Just finished a retry: return to main queue, reset counter
         newMainAnsweredCount = 0
       } else {
-        // Just finished a main question: advance main index
         newMainIndex = mainIndex + 1
         newMainAnsweredCount = mainAnsweredCount + 1
       }
 
-      // When main queue exhausted, drain wrong queue
       if (newMainIndex >= mainQuestions.length) {
         if (newWQ.length > 0) {
           newIsRetryMode = true
           newRetryQuestion = newWQ.shift()!
         }
       } else if (!newIsRetryMode && newMainAnsweredCount >= RETRY_INTERVAL && newWQ.length > 0) {
-        // Time to insert a retry
         newIsRetryMode = true
         newRetryQuestion = newWQ.shift()!
         newMainAnsweredCount = 0
@@ -170,7 +232,7 @@ export function Practice() {
   }
 
   const handlePrev = () => {
-    if (isRetryMode) return // can't go back during retry
+    if (isRetryMode) return
     setMainIndex((i) => i - 1)
     setSelected([])
     setSubmitted(false)
@@ -227,7 +289,7 @@ export function Practice() {
 
   const handleUntriedToggle = (checked: boolean) => {
     const next = new URLSearchParams(params)
-    if (checked) next.set('untried', '1')
+    if (checked) { next.set('untried', '1'); next.delete('errorsOnly') }
     else next.delete('untried')
     navigate(`/practice?${next.toString()}`, { replace: true })
   }
@@ -239,13 +301,41 @@ export function Practice() {
     navigate(`/practice?${next.toString()}`, { replace: true })
   }
 
-  if (allPracticed) {
+  const handleErrorsOnlyToggle = (checked: boolean) => {
+    const next = new URLSearchParams(params)
+    if (checked) { next.set('errorsOnly', '1'); next.delete('untried'); next.delete('shuffle') }
+    else next.delete('errorsOnly')
+    navigate(`/practice?${next.toString()}`, { replace: true })
+  }
+
+  // Loading state
+  if (!loadingDone) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-muted-foreground">
+        加载中…
+      </div>
+    )
+  }
+
+  // No questions (untried exhausted or no errors)
+  if (mainQuestions.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center space-y-4">
-        <p className="text-2xl font-bold">🎉 全部练习过了！</p>
-        <p className="text-muted-foreground">
-          {category ? decodeURIComponent(category).split('.').pop() : '全部题目'}已全部做过，取消筛选继续练习。
-        </p>
+        {errorsOnly ? (
+          <>
+            <p className="text-2xl font-bold">🎉 暂无错题！</p>
+            <p className="text-muted-foreground">
+              {category ? decodeURIComponent(category).split('.').pop() + '分类' : '全部题目'}中没有错题记录。
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-2xl font-bold">🎉 全部练习过了！</p>
+            <p className="text-muted-foreground">
+              {category ? decodeURIComponent(category).split('.').pop() : '全部题目'}已全部做过，取消筛选继续练习。
+            </p>
+          </>
+        )}
         <div className="flex gap-3 justify-center">
           <button
             onClick={() => handleUntriedToggle(false)}
@@ -264,14 +354,6 @@ export function Practice() {
     )
   }
 
-  if (mainQuestions.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center p-8 text-muted-foreground">
-        加载中…
-      </div>
-    )
-  }
-
   // Completion: main queue exhausted + wrong queue drained
   if (!isRetryMode && mainIndex >= mainQuestions.length && wrongQueue.length === 0) {
     return (
@@ -280,15 +362,7 @@ export function Practice() {
         <p className="text-muted-foreground">共 {mainQuestions.length} 题</p>
         <div className="flex gap-3 justify-center">
           <button
-            onClick={() => {
-              setMainIndex(0)
-              setWrongQueue([])
-              setMainAnsweredCount(0)
-              setIsRetryMode(false)
-              setRetryQuestion(null)
-              setSelected([])
-              setSubmitted(false)
-            }}
+            onClick={() => resetSession(mainQuestions)}
             className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm hover:bg-muted"
           >
             <RotateCcw className="h-4 w-4" /> 重新开始
@@ -344,16 +418,32 @@ export function Practice() {
 
       {/* Filters */}
       {!singleId && !isRetryMode && (
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
             <input
               type="checkbox"
-              checked={untriedOnly}
-              onChange={(e) => handleUntriedToggle(e.target.checked)}
-              className="h-4 w-4 rounded border-muted-foreground/40 accent-primary"
+              checked={errorsOnly}
+              onChange={(e) => handleErrorsOnlyToggle(e.target.checked)}
+              className="h-4 w-4 rounded border-muted-foreground/40 accent-red-500"
             />
-            只做未练习
+            <span className={errorsOnly ? 'text-red-500 font-medium' : 'text-muted-foreground'}>
+              错题
+              {errorsOnly && !doShuffle && (
+                <span className="ml-1 text-xs text-muted-foreground font-normal">（按错误率排序）</span>
+              )}
+            </span>
           </label>
+          {!errorsOnly && (
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={untriedOnly}
+                onChange={(e) => handleUntriedToggle(e.target.checked)}
+                className="h-4 w-4 rounded border-muted-foreground/40 accent-primary"
+              />
+              只做未练习
+            </label>
+          )}
           <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
             <input
               type="checkbox"

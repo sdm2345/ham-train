@@ -1,6 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
-import { isDue } from '@/lib/srs'
 
 export function useStudyStats() {
   const totalByCategory = useLiveQuery(async () => {
@@ -25,10 +24,13 @@ export function useStudyStats() {
     return db.records.where('timestamp').above(midnight.getTime()).count()
   }, [])
 
-  const dueCount = useLiveQuery(async () => {
-    const cards = await db.srs_cards.toArray()
-    return cards.filter(isDue).length
+  const errorCount = useLiveQuery(async () => {
+    const wrongRecords = await db.records.where('isCorrect').equals(0).toArray()
+    const wrongIds = new Set(wrongRecords.map((r) => r.questionId))
+    const guessedCards = await db.srs_cards.filter((c) => c.guessed === true).toArray()
+    const guessedIds = new Set(guessedCards.map((c) => c.questionId))
+    return new Set([...wrongIds, ...guessedIds]).size
   }, [])
 
-  return { totalByCategory, correctByCategory, todayCount, dueCount }
+  return { totalByCategory, correctByCategory, todayCount, errorCount }
 }

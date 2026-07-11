@@ -7,6 +7,7 @@ export interface SRSCard {
   streakCorrect: number
   totalReviews: number
   skipped?: boolean
+  guessed?: boolean
 }
 
 // Leitner box intervals in milliseconds

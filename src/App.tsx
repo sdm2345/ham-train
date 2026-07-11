@@ -5,7 +5,6 @@ import { Home } from './pages/Home'
 import { Practice } from './pages/Practice'
 import { Exam } from './pages/Exam'
 import { ErrorBook } from './pages/ErrorBook'
-import { Review } from '@/pages/Review'
 import Stats from '@/pages/Stats'
 import Knowledge from '@/pages/Knowledge'
 import { seedIfEmpty } from './db/seed'
@@ -23,7 +22,6 @@ function AppRoutes() {
           <Route path="/practice" element={<Practice />} />
           <Route path="/exam" element={<Exam />} />
           <Route path="/errors" element={<ErrorBook />} />
-          <Route path="/review" element={<Review />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/knowledge" element={<Knowledge />} />
         </Routes>

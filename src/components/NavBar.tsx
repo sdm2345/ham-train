@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Home, BookOpen, ClipboardList, AlertCircle, BookMarked, BarChart2, BookText, Settings, X, Trash2, List } from 'lucide-react'
+import { Home, BookOpen, ClipboardList, AlertCircle, BarChart2, BookText, Settings, X, Trash2, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FontSizeToggle } from './FontSizeToggle'
 import { db } from '@/db'
@@ -32,7 +32,6 @@ const tabs = [
   { to: '/practice', label: '练习', Icon: BookOpen },
   { to: '/exam', label: '考试', Icon: ClipboardList },
   { to: '/errors', label: '错题本', Icon: AlertCircle },
-  { to: '/review', label: '复习', Icon: BookMarked },
   { to: '/stats', label: '统计', Icon: BarChart2 },
   { to: '/knowledge', label: '知识', Icon: BookText },
 ]
